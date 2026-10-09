@@ -1,0 +1,14 @@
+line-length = 79
+
+[lint]
+select = [
+    "E",
+    "W",
+    "N",
+    "F",
+    "I",
+]
+preview = true
+
+[lint.pycodestyle]
+max-doc-length = 72
