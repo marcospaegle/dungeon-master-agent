@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 
-from dungeon.core.indexing import IndexingService
+from dungeon.core.indexing_service import IndexingService
 
 
 class FakeLoader:
