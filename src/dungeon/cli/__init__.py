@@ -1,10 +1,17 @@
 import typer
+from dotenv import load_dotenv
 
 from .build import app as build_app
 from .chat import app as chat_app
 from .version import app as version_app
 
 app = typer.Typer()
+
+
+@app.callback()
+def main():
+    load_dotenv()
+
 
 app.add_typer(version_app)
 app.add_typer(chat_app, name="chat")
