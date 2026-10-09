@@ -11,7 +11,7 @@ Python 3.14 managed with uv (no pip/venv).
 - Lint: `uv run ruff check`
 - Format: `uv run ruff format`
 - Build: `uv build`
-- Tests: none configured yet.
+- Tests: `uv run pytest` (tests live in `tests/`, mirroring `src/dungeon/`)
 
 ## CLI structure
 
