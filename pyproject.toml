@@ -7,10 +7,15 @@ authors = [
     { name = "Marcos Paegle", email = "marcos.paegle@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "typer>=0.27.3",
+]
 
 [project.scripts]
-dungeon-master-agent = "dungeon_master_agent:main"
+dungeon = "dungeon.cli:app"
+
+[tool.uv.build-backend]
+module-name = "dungeon"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13.0"]

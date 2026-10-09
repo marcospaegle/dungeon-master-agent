@@ -1,7 +1,9 @@
 # Python-generated files
 __pycache__/
+.ruff_cache/
 *.py[oc]
 build/
+!src/dungeon/cli/build/
 dist/
 wheels/
 *.egg-info
