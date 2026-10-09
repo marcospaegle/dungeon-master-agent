@@ -1,49 +1,44 @@
 from collections import defaultdict
 from pathlib import Path
 
-import chromadb
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
+
+from dungeon.core.metadata import PAGE, SOURCE
 
 COLLECTION = "dungeon"
 
 
+def _chunk_ids(chunks: list[Document]) -> list[str]:
+    """IDs of the form ``<source>#<page>#<chunk-index>``."""
+    counts: defaultdict[tuple, int] = defaultdict(int)
+    ids = []
+
+    for chunk in chunks:
+        key = (chunk.metadata[SOURCE], chunk.metadata[PAGE])
+        ids.append(f"{key[0]}#{key[1]}#{counts[key]}")
+        counts[key] += 1
+
+    return ids
+
+
 class ChromaStore:
-    """Persists Chunks and their embeddings in a local Chroma store.
+    """Embeds Chunks and persists them in a local Chroma store.
 
     Adding replaces: everything already stored for a Source in the
-    batch is deleted first, then the batch is upserted under IDs of
-    the form ``<source>#<page>#<chunk-index>``.
+    batch is deleted first, then the batch is upserted.
     """
 
-    def __init__(self, path: Path) -> None:
-        client = chromadb.PersistentClient(path=str(path))
-        self._collection = client.get_or_create_collection(COLLECTION)
-
-    def add(
-        self,
-        documents: list[Document],
-        embeddings: list[list[float]],
-    ) -> None:
-        if not documents:
-            return
-
-        for source in {doc.metadata["source"] for doc in documents}:
-            self._collection.delete(where={"source": source})
-
-        counts: defaultdict[tuple, int] = defaultdict(int)
-        ids = []
-
-        for doc in documents:
-            key = (doc.metadata["source"], doc.metadata["page"])
-            ids.append(f"{key[0]}#{key[1]}#{counts[key]}")
-            counts[key] += 1
-
-        self._collection.upsert(
-            ids=ids,
-            documents=[doc.page_content for doc in documents],
-            embeddings=embeddings,
-            metadatas=[doc.metadata for doc in documents],
+    def __init__(self, path: Path, embeddings: Embeddings) -> None:
+        self._chroma = Chroma(
+            collection_name=COLLECTION,
+            persist_directory=str(path),
+            embedding_function=embeddings,
         )
 
-    def count(self) -> int:
-        return self._collection.count()
+    def add(self, chunks: list[Document]) -> None:
+        for source in {chunk.metadata[SOURCE] for chunk in chunks}:
+            self._chroma.delete(where={SOURCE: source})
+
+        self._chroma.add_documents(chunks, ids=_chunk_ids(chunks))

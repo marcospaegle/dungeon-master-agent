@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pypdf.errors import PdfReadError
 
 from dungeon.core.adapters.pdf_folder_loader import PdfFolderLoader
 
@@ -85,5 +86,5 @@ def test_folder_without_pdfs_fails(tmp_path):
 def test_corrupt_pdf_fails_loudly(tmp_path):
     (tmp_path / "bad.pdf").write_bytes(b"not a pdf")
 
-    with pytest.raises(Exception):
+    with pytest.raises(PdfReadError):
         PdfFolderLoader(tmp_path).load()

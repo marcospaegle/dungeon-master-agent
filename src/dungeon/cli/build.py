@@ -3,9 +3,10 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from dotenv import load_dotenv
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from dungeon.core.adapters.chroma_store import ChromaStore
-from dungeon.core.adapters.gemini_embedder import GeminiEmbedder
 from dungeon.core.adapters.pdf_folder_loader import PdfFolderLoader
 from dungeon.core.adapters.recursive_splitter import RecursiveSplitter
 from dungeon.core.indexing_service import IndexingService
@@ -22,23 +23,27 @@ def _require_env(name: str) -> str:
 
 @app.command()
 def build(
-    source: Annotated[
+    source_folder: Annotated[
         Path, typer.Option(help="Folder with the PDFs to index.")
-    ],
+    ] = Path(".dungeon/books"),
     store: Annotated[
         Path, typer.Option(help="Where the Chroma store lives.")
     ] = Path(".dungeon/chroma"),
 ):
     """Index the PDFs of a source folder into the vector store."""
 
-    api_key = _require_env("GOOGLE_API_KEY")
-    model = _require_env("GOOGLE_EMBEDDING_MODEL")
+    load_dotenv()
+
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=_require_env("GOOGLE_EMBEDDING_MODEL"),
+        google_api_key=_require_env("GOOGLE_API_KEY"),
+        task_type="RETRIEVAL_DOCUMENT",
+    )
 
     service = IndexingService(
-        PdfFolderLoader(source),
+        PdfFolderLoader(source_folder),
         RecursiveSplitter(),
-        GeminiEmbedder(api_key, model),
-        ChromaStore(store),
+        ChromaStore(store, embeddings),
     )
 
     print(f"Indexed {service.index()} chunks.")

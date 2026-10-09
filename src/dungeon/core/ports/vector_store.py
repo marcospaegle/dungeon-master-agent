@@ -4,10 +4,6 @@ from langchain_core.documents import Document
 
 
 class VectorStore(Protocol):
-    """Persists documents together with their embeddings."""
+    """Embeds chunks and persists them."""
 
-    def add(
-        self,
-        documents: list[Document],
-        embeddings: list[list[float]],
-    ) -> None: ...
+    def add(self, chunks: list[Document]) -> None: ...

@@ -4,6 +4,8 @@ from pathlib import Path
 import pypdf
 from langchain_core.documents import Document
 
+from dungeon.core.metadata import PAGE, SOURCE
+
 
 class PdfFolderLoader:
     """Loads one Document per page from the PDFs in a source folder.
@@ -48,7 +50,7 @@ class PdfFolderLoader:
             documents.append(
                 Document(
                     page_content=text,
-                    metadata={"source": str(path), "page": number},
+                    metadata={SOURCE: str(path), PAGE: number},
                 )
             )
 

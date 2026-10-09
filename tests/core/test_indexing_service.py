@@ -26,48 +26,31 @@ class FakeSplitter:
         ]
 
 
-class FakeEmbedder:
-    def __init__(self) -> None:
-        self.received: list[str] = []
-
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        self.received = texts
-        return [[float(len(text))] for text in texts]
-
-
 class FakeStore:
     def __init__(self) -> None:
-        self.documents: list[Document] = []
-        self.embeddings: list[list[float]] = []
+        self.chunks: list[Document] = []
 
-    def add(
-        self,
-        documents: list[Document],
-        embeddings: list[list[float]],
-    ) -> None:
-        self.documents = documents
-        self.embeddings = embeddings
+    def add(self, chunks: list[Document]) -> None:
+        self.chunks = chunks
 
 
 def build_service(documents: list[Document]):
-    splitter, embedder, store = FakeSplitter(), FakeEmbedder(), FakeStore()
-    service = IndexingService(FakeLoader(documents), splitter, embedder, store)
-    return service, splitter, embedder, store
+    splitter, store = FakeSplitter(), FakeStore()
+    service = IndexingService(FakeLoader(documents), splitter, store)
+    return service, splitter, store
 
 
 def test_index_runs_each_stage_on_the_previous_output():
     loaded = [Document(page_content="ab\ncde")]
-    service, splitter, embedder, store = build_service(loaded)
+    service, splitter, store = build_service(loaded)
 
     service.index()
 
     assert splitter.received == loaded
-    assert embedder.received == ["ab", "cde"]
-    assert store.documents == [
+    assert store.chunks == [
         Document(page_content="ab"),
         Document(page_content="cde"),
     ]
-    assert store.embeddings == [[2.0], [3.0]]
 
 
 def test_index_returns_the_number_of_chunks_stored():
@@ -77,8 +60,7 @@ def test_index_returns_the_number_of_chunks_stored():
 
 
 def test_index_with_no_documents_stores_nothing():
-    service, _, embedder, store = build_service([])
+    service, _, store = build_service([])
 
     assert service.index() == 0
-    assert embedder.received == []
-    assert store.documents == []
+    assert store.chunks == []
