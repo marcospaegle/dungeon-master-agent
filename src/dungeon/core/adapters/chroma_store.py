@@ -7,6 +7,16 @@ from langchain_core.embeddings import Embeddings
 COLLECTION = "dungeon"
 
 
+def open_chroma(path: Path, embeddings: Embeddings) -> Chroma:
+    """The Chroma collection indexing writes and retrieval reads."""
+
+    return Chroma(
+        collection_name=COLLECTION,
+        persist_directory=str(path),
+        embedding_function=embeddings,
+    )
+
+
 class ChromaStore:
     """Embeds Chunks and persists them in a local Chroma store.
 
@@ -15,11 +25,7 @@ class ChromaStore:
     """
 
     def __init__(self, path: Path, embeddings: Embeddings) -> None:
-        self._chroma = Chroma(
-            collection_name=COLLECTION,
-            persist_directory=str(path),
-            embedding_function=embeddings,
-        )
+        self._chroma = open_chroma(path, embeddings)
 
     def add(self, chunks: list[Document], ids: list[str]) -> None:
         self._chroma.add_documents(chunks, ids=ids)
