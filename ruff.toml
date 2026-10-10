@@ -1,4 +1,5 @@
 line-length = 79
+extend-exclude = [".claude"]
 
 [lint]
 select = [
