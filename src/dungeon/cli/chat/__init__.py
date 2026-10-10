@@ -1,8 +1,18 @@
+import os
+from pathlib import Path
+
 import typer
+from dotenv import load_dotenv
+
+from dungeon.core.adapters.pypdf_sheet_writer import PypdfSheetWriter
+from dungeon.core.agent_factory import create_agent_factory
+from dungeon.core.character_store import CharacterStore
 
 from .chat import Chat
 
 app = typer.Typer()
+
+STORAGE = Path("storage")
 
 
 def _read() -> str:
@@ -18,4 +28,13 @@ def _read() -> str:
 def chat():
     """Open a Chat."""
 
-    Chat(read=_read, write=typer.echo).run()
+    load_dotenv()
+    Chat(
+        read=_read,
+        write=typer.echo,
+        agent_factory=create_agent_factory(STORAGE / "chroma", os.environ),
+        store=CharacterStore(
+            STORAGE / "characters",
+            PypdfSheetWriter(STORAGE / "assets" / "character_sheet.pdf"),
+        ),
+    ).run()

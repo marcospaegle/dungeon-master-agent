@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from dungeon.core.character import Character
 from dungeon.core.character_store import CharacterStore
-from dungeon.core.ports.agent import Agent
+from dungeon.core.ports.agent import Agent, AgentUnavailableError
 
 HINT = "Type /help to list the Commands."
 
@@ -102,7 +102,11 @@ class Chat:
                     self._write(f"Not a choice: {pick}")
                     return
                 draft = saved[int(pick) - 1]
-        self._agent = self._agent_factory(draft)
+        try:
+            self._agent = self._agent_factory(draft)
+        except AgentUnavailableError as error:
+            self._write(str(error))
+            return
         self._talked = False
         self._write("Character creation. Type /exit to leave.")
 
@@ -116,7 +120,12 @@ class Chat:
 
     def _talk(self, text: str) -> None:
         self._talked = True
-        reply = self._agent.reply(text)
+        try:
+            reply = self._agent.reply(text)
+        except AgentUnavailableError as error:
+            self._agent = None
+            self._write(str(error))
+            return
         self._write(reply.text)
         if reply.finished is None:
             return

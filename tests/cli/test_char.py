@@ -8,7 +8,7 @@ from dungeon.cli.chat.chat import Chat
 from dungeon.core.adapters.pypdf_sheet_writer import PypdfSheetWriter
 from dungeon.core.character import Character
 from dungeon.core.character_store import CharacterStore
-from dungeon.core.ports.agent import AgentReply
+from dungeon.core.ports.agent import AgentReply, AgentUnavailableError
 
 TEMPLATE = (
     Path(__file__).parents[2] / "storage" / "assets" / "character_sheet.pdf"
@@ -202,3 +202,32 @@ def test_confirming_an_edit_updates_the_json_and_the_pdf(tmp_path):
     saved = json.loads((tmp_path / "brannoch.json").read_text())
     assert saved["personality"] == ""
     assert (tmp_path / "brannoch.pdf").read_bytes() != pdf_before
+
+
+class UnavailableAgent:
+    def reply(self, text: str) -> AgentReply:
+        raise AgentUnavailableError("Run `dungeon build` first.")
+
+
+def test_an_agent_that_cannot_run_ends_creation_with_its_message(tmp_path):
+    output = run(tmp_path, UnavailableAgent(), "/char", "hi", "hello")
+
+    assert "Run `dungeon build` first." in output
+    assert "Type /help to list the Commands." in output
+
+
+def test_a_factory_that_cannot_build_the_agent_says_why(tmp_path):
+    inputs = iter(["/char", "/quit"])
+    output: list[str] = []
+
+    def agent_factory(draft):
+        raise AgentUnavailableError("ANTHROPIC_API_KEY is not set.")
+
+    Chat(
+        read=lambda: next(inputs),
+        write=output.append,
+        agent_factory=agent_factory,
+        store=CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
+    ).run()
+
+    assert "ANTHROPIC_API_KEY is not set." in "\n".join(output)

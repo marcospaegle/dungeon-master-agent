@@ -3,6 +3,10 @@ from typing import NamedTuple, Protocol
 from dungeon.core.character import Character
 
 
+class AgentUnavailableError(Exception):
+    """The agent cannot run; the message says what the user must fix."""
+
+
 class AgentReply(NamedTuple):
     """What the agent says back.
 

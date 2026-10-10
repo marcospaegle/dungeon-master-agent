@@ -11,6 +11,7 @@ dependencies = [
     "fonttools>=4.66.1",
     "google-genai>=2.29.0",
     "httpx>=0.28.1",
+    "langchain-anthropic>=1.7.5",
     "langchain-chroma>=1.1.0",
     "langchain-core>=1.6.9",
     "langchain-google-genai>=4.4.0",
