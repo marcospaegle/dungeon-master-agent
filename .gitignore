@@ -1,6 +1,7 @@
 # Python-generated files
 __pycache__/
 .ruff_cache/
+.pytest_cache/
 *.py[oc]
 build/
 !src/dungeon/cli/build/
@@ -13,4 +14,3 @@ wheels/
 
 # Secrets and local data
 .env
-.dungeon/
