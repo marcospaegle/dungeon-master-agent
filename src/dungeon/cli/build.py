@@ -9,7 +9,6 @@ from typing import Annotated
 
 import typer
 from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -18,18 +17,12 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from dungeon.core.adapters.chroma_store import ChromaStore
-from dungeon.core.adapters.pdf_folder_loader import PdfFolderLoader
-from dungeon.core.adapters.recursive_splitter import RecursiveSplitter
-from dungeon.core.adapters.retrying_embeddings import RetryingEmbeddings
-from dungeon.core.indexing_service import IndexingService
+from dungeon.core.indexing_factory import create_indexing_service
 
 app = typer.Typer()
 
 LOG_FOLDER = Path("storage/logs")
 
-# The parent of every module's logger, so the log file also gets the
-# lines written by the core (retries, progress).
 logger = logging.getLogger("dungeon")
 
 
@@ -113,18 +106,11 @@ def build(
             with _log_warnings():
                 load_dotenv()
 
-                embeddings = RetryingEmbeddings(
-                    GoogleGenerativeAIEmbeddings(
-                        model=_require_env("GOOGLE_EMBEDDING_MODEL"),
-                        google_api_key=_require_env("GOOGLE_API_KEY"),
-                        task_type="RETRIEVAL_DOCUMENT",
-                    )
-                )
-
-                service = IndexingService(
-                    PdfFolderLoader(source_folder),
-                    RecursiveSplitter(),
-                    ChromaStore(store, embeddings),
+                service = create_indexing_service(
+                    source_folder,
+                    store,
+                    embedding_model=_require_env("GOOGLE_EMBEDDING_MODEL"),
+                    api_key=_require_env("GOOGLE_API_KEY"),
                 )
 
                 started = time.monotonic()
