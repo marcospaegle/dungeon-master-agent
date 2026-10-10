@@ -9,14 +9,16 @@ from dungeon.core.agent_factory import create_agent_factory
 ENVIRON = {**dotenv_values(), **os.environ}
 INDEX = Path("storage/chroma")
 
-# Opt-in: needs real keys and a built index, and costs a few cents.
+# Opt-in with DUNGEON_LIVE=1: needs real keys and a built index, and
+# costs a few cents.
 pytestmark = pytest.mark.skipif(
     not (
-        ENVIRON.get("ANTHROPIC_API_KEY")
+        ENVIRON.get("DUNGEON_LIVE") == "1"
+        and ENVIRON.get("ANTHROPIC_API_KEY")
         and ENVIRON.get("GOOGLE_API_KEY")
         and INDEX.is_dir()
     ),
-    reason="needs ANTHROPIC_API_KEY, GOOGLE_API_KEY and a built index",
+    reason="set DUNGEON_LIVE=1, both API keys and build the index",
 )
 
 

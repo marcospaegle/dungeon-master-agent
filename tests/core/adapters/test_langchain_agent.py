@@ -177,3 +177,13 @@ def test_a_model_that_never_stops_calling_tools_is_cut_off():
 
     with pytest.raises(AgentUnavailableError, match="tool"):
         agent(model).reply("loop")
+
+
+def test_an_unknown_field_is_refused_without_changing_anything():
+    model = ScriptedModel(
+        call("set_fields", fields={"hit_points": 99}), AIMessage("ok")
+    )
+
+    agent(model).reply("give me 99 hp")
+
+    assert "Unknown fields" in model.tool_results()[-1]

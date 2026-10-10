@@ -1,4 +1,5 @@
 import json
+from dataclasses import fields as dataclass_fields
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
@@ -24,6 +25,8 @@ from dungeon.core.character_json import (
 )
 from dungeon.core.ports.agent import AgentReply, AgentUnavailableError
 from dungeon.core.ports.retriever import IndexNotBuiltError, Retriever
+
+_FIELD_NAMES = {field.name for field in dataclass_fields(Character)}
 
 SEARCH_RESULTS = 4
 MAX_TOOL_ROUNDS = 12
@@ -154,6 +157,9 @@ class LangchainAgent:
         problem if the character is not legal yet, or the numbers
         derived by code if it is.
         """
+        unknown = fields.keys() - _FIELD_NAMES
+        if unknown:
+            return f"Unknown fields, nothing changed: {sorted(unknown)}"
         self._fields.update(fields)
         return self.get_character()
 
