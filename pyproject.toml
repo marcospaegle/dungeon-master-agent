@@ -39,5 +39,6 @@ dev = [
 [tool.pytest]
 minversion = "9.0"
 testpaths = ["tests"]
+pythonpath = ["tests"]
 addopts = ["-ra"]
 strict = true
