@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Python 3.14 managed with uv (no pip/venv).
 
 - Setup: `uv sync`
-- Run: `uv run dungeon` (e.g. `uv run dungeon chat new`; `--help` lists commands)
+- Run: `uv run dungeon` (e.g. `uv run dungeon chat`; `--help` lists commands)
 - Lint: `uv run ruff check`
 - Format: `uv run ruff format`
 - Build: `uv build`
@@ -18,7 +18,7 @@ Python 3.14 managed with uv (no pip/venv).
 ## CLI structure
 
 - Source is `src/dungeon/`; the Typer root app is in `src/dungeon/cli/__init__.py`.
-- Each command lives in its own module with a one-command `typer.Typer()`, composed by the parent with `add_typer`. A sub-app added without `name=` merges its command into the parent (`dungeon version`); with `name=` it becomes a group (`dungeon chat new`).
+- Each command lives in its own module with a one-command `typer.Typer()`, composed by the parent with `add_typer`. A sub-app added without `name=` merges its command into the parent (`dungeon version`); with `name=` it becomes a group (`dungeon chat`, whose callback runs the Chat).
 
 ## Architecture
 
