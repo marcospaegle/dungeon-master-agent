@@ -44,3 +44,10 @@ def test_blank_lines_are_ignored():
     result = chat("", "/quit")
 
     assert "Type /help" not in result.output
+
+
+def test_a_command_with_trailing_text_still_runs():
+    result = chat("/help please", "/quit now")
+
+    assert "Commands:" in result.output
+    assert "Unknown Command" not in result.output
