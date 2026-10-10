@@ -26,6 +26,19 @@ class CharacterStore:
         self._folder = folder
         self._sheet_writer = sheet_writer
 
+    def saved(self) -> list[Character]:
+        """The saved Characters, sorted by name."""
+        return sorted(
+            (
+                character_from_dict(json.loads(source.read_text()))
+                for source in self._folder.glob("*.json")
+            ),
+            key=lambda character: character.name.casefold(),
+        )
+
+    def exists(self, character: Character) -> bool:
+        return (self._folder / f"{_slug(character.name)}.json").exists()
+
     def save(self, character: Character) -> Path:
         """Write the JSON and the PDF; return the PDF's path."""
         self._folder.mkdir(parents=True, exist_ok=True)

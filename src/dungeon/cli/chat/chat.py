@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from dungeon.core.character import Character
 from dungeon.core.character_store import CharacterStore
 from dungeon.core.ports.agent import Agent
 
@@ -12,7 +13,8 @@ class Chat:
     Input and output are injected so the Chat can be driven without a
     terminal. The read callable raises EOFError when input runs out.
 
-    /char needs an agent factory and a Character store; without them
+    /char needs an agent factory, which gets the saved Character to
+    edit (or None for a new one), and a Character store; without them
     it says Character creation is unavailable.
     """
 
@@ -20,7 +22,7 @@ class Chat:
         self,
         read: Callable[[], str],
         write: Callable[[str], None],
-        agent_factory: Callable[[], Agent] | None = None,
+        agent_factory: Callable[[Character | None], Agent] | None = None,
         store: CharacterStore | None = None,
     ) -> None:
         self._read = read
@@ -77,9 +79,32 @@ class Chat:
         elif self._agent is not None:
             self._write("Already creating a Character. /exit leaves.")
         else:
-            self._agent = self._agent_factory()
-            self._talked = False
-            self._write("Character creation. Type /exit to leave.")
+            self._start_creation()
+
+    def _start_creation(self) -> None:
+        draft = None
+        saved = self._store.saved()
+        if saved:
+            lines = [f"  {n}. {c.name}" for n, c in enumerate(saved, 1)]
+            self._write(
+                "\n".join(
+                    [
+                        "Saved Characters:",
+                        *lines,
+                        "Pick a number to edit one, or press Enter to "
+                        "start a new Character.",
+                    ]
+                )
+            )
+            pick = self._read().strip()
+            if pick:
+                if not (pick.isdigit() and 1 <= int(pick) <= len(saved)):
+                    self._write(f"Not a choice: {pick}")
+                    return
+                draft = saved[int(pick) - 1]
+        self._agent = self._agent_factory(draft)
+        self._talked = False
+        self._write("Character creation. Type /exit to leave.")
 
     def _exit(self) -> None:
         if self._agent is None:
@@ -97,7 +122,11 @@ class Chat:
             return
         character = reply.finished
         self._agent = None
-        if self._confirm(f"Save {character.name}? [y/N]"):
+        if self._store.exists(character):
+            question = f"{character.name} already exists. Overwrite? [y/N]"
+        else:
+            question = f"Save {character.name}? [y/N]"
+        if self._confirm(question):
             pdf = self._store.save(character)
             self._write(f"Saved {character.name}: {pdf}")
         else:
