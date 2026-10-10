@@ -29,6 +29,10 @@ Python 3.14 managed with uv (no pip/venv).
 - Never use `langchain-community`; use `pypdf` and the standalone
   `langchain-*` packages (see `docs/adr/0001-no-langchain-community.md`).
 
+## Ruleset
+
+- The project targets D&D 5.5e (the 2024 rules) only, not the 2014 5e rules. Code, prompts, validation and evals must follow 5.5e, and the Sources are the 5.5e books.
+
 ## Style
 
 - Ruff is the only linter/formatter (`ruff.toml`): rules E, W, N, F, I with `preview = true`.
