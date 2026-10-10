@@ -85,6 +85,7 @@ class ScoreMethod(StrEnum):
 
 STR, DEX, CON, INT, WIS, CHA = Ability
 
+LEVEL = 1
 PROFICIENCY_BONUS = 2  # at level 1
 
 # Step 3: Determine Ability Scores, Player's Handbook (2024), chapter 2.
@@ -153,6 +154,15 @@ HIT_DIE = {
 class ArmorStats(NamedTuple):
     category: ArmorCategory
     base_armor_class: int
+
+
+class Attack(NamedTuple):
+    """One row of the sheet's weapons and damage cantrips table."""
+
+    name: str
+    bonus: str
+    damage: str
+    notes: str
 
 
 class ArmorTraining(NamedTuple):
@@ -232,6 +242,17 @@ class Character:
     equipment: tuple[str, ...] = ()
     personality: str = ""
     backstory: str = ""
+    speed: str = ""
+    size: str = ""
+    alignment: str = ""
+    appearance: str = ""
+    languages: tuple[str, ...] = ()
+    attacks: tuple[Attack, ...] = ()
+    class_features: tuple[str, ...] = ()
+    species_traits: tuple[str, ...] = ()
+    feats: tuple[str, ...] = ()
+    weapon_proficiencies: tuple[str, ...] = ()
+    tool_proficiencies: tuple[str, ...] = ()
 
     def __post_init__(self):
         # Copy what the caller may still hold, then validate the copy.
@@ -241,6 +262,13 @@ class Character:
             ("skill_proficiencies", frozenset),
             ("expertise", frozenset),
             ("equipment", tuple),
+            ("languages", tuple),
+            ("attacks", tuple),
+            ("class_features", tuple),
+            ("species_traits", tuple),
+            ("feats", tuple),
+            ("weapon_proficiencies", tuple),
+            ("tool_proficiencies", tuple),
         ):
             object.__setattr__(self, field, copy(getattr(self, field)))
         self._check_ability_scores()
@@ -260,6 +288,14 @@ class Character:
             ability: modifier(score)
             for ability, score in self.ability_scores.items()
         }
+
+    @property
+    def armor_training(self) -> ArmorTraining:
+        return ARMOR_TRAINING[self.character_class]
+
+    @property
+    def level(self) -> int:
+        return LEVEL
 
     @property
     def proficiency_bonus(self) -> int:

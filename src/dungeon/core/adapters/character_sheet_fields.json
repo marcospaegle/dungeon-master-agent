@@ -1,0 +1,189 @@
+{
+  "identity": {
+    "name": "Text1",
+    "background": "Text6",
+    "class": "Text7",
+    "species": "Text8",
+    "level": "Text11"
+  },
+  "proficiency_bonus": "Text19",
+  "abilities": {
+    "Strength": {
+      "score": "Text64",
+      "modifier": "Text21",
+      "save": "Text91",
+      "save_proficient": "Check Box37"
+    },
+    "Dexterity": {
+      "score": "Text66",
+      "modifier": "Text22",
+      "save": "Text87",
+      "save_proficient": "Check Box33"
+    },
+    "Constitution": {
+      "score": "Text67",
+      "modifier": "Text24",
+      "save": "Text86",
+      "save_proficient": "Check Box32"
+    },
+    "Intelligence": {
+      "score": "Text63",
+      "modifier": "Text20",
+      "save": "Text69",
+      "save_proficient": "Check Box4"
+    },
+    "Wisdom": {
+      "score": "Text65",
+      "modifier": "Text23",
+      "save": "Text75",
+      "save_proficient": "Check Box21"
+    },
+    "Charisma": {
+      "score": "Text68",
+      "modifier": "Text25",
+      "save": "Text81",
+      "save_proficient": "Check Box26"
+    }
+  },
+  "skills": {
+    "Acrobatics": {
+      "bonus": "Text88",
+      "proficient": "Check Box34"
+    },
+    "Animal Handling": {
+      "bonus": "Text76",
+      "proficient": "Check Box22"
+    },
+    "Arcana": {
+      "bonus": "Text70",
+      "proficient": "Check Box16"
+    },
+    "Athletics": {
+      "bonus": "Text92",
+      "proficient": "Check Box38"
+    },
+    "Deception": {
+      "bonus": "Text82",
+      "proficient": "Check Box27"
+    },
+    "History": {
+      "bonus": "Text71",
+      "proficient": "Check Box17"
+    },
+    "Insight": {
+      "bonus": "Text77",
+      "proficient": "Check Box23"
+    },
+    "Intimidation": {
+      "bonus": "Text83",
+      "proficient": "Check Box28"
+    },
+    "Investigation": {
+      "bonus": "Text72",
+      "proficient": "Check Box19"
+    },
+    "Medicine": {
+      "bonus": "Text78",
+      "proficient": "Check Box25"
+    },
+    "Nature": {
+      "bonus": "Text73",
+      "proficient": "Check Box20"
+    },
+    "Perception": {
+      "bonus": "Text79",
+      "proficient": "Check Box31"
+    },
+    "Performance": {
+      "bonus": "Text84",
+      "proficient": "Check Box30"
+    },
+    "Persuasion": {
+      "bonus": "Text85",
+      "proficient": "Check Box29"
+    },
+    "Religion": {
+      "bonus": "Text74",
+      "proficient": "Check Box18"
+    },
+    "Sleight of Hand": {
+      "bonus": "Text89",
+      "proficient": "Check Box35"
+    },
+    "Stealth": {
+      "bonus": "Text90",
+      "proficient": "Check Box36"
+    },
+    "Survival": {
+      "bonus": "Text80",
+      "proficient": "Check Box24"
+    }
+  },
+  "combat": {
+    "armor_class": "Text13",
+    "shield": "Check Box3",
+    "hp_current": "Text14",
+    "hp_max": "Text16",
+    "hit_dice_max": "Text17",
+    "initiative": "Text26",
+    "speed": "Text27",
+    "size": "Text28",
+    "passive_perception": "Text29"
+  },
+  "armor_training": {
+    "Light": "Check Box13",
+    "Medium": "Check Box14",
+    "Heavy": "Check Box15",
+    "Shields": "Check Box12"
+  },
+  "attacks": [
+    {
+      "name": "Text30",
+      "bonus": "Text31",
+      "damage": "Text32",
+      "notes": "Text33"
+    },
+    {
+      "name": "Text34",
+      "bonus": "Text35",
+      "damage": "Text36",
+      "notes": "Text37"
+    },
+    {
+      "name": "Text38",
+      "bonus": "Text39",
+      "damage": "Text40",
+      "notes": "Text41"
+    },
+    {
+      "name": "Text42",
+      "bonus": "Text43",
+      "damage": "Text44",
+      "notes": "Text45"
+    },
+    {
+      "name": "Text46",
+      "bonus": "Text47",
+      "damage": "Text48",
+      "notes": "Text49"
+    },
+    {
+      "name": "Text50",
+      "bonus": "Text51",
+      "damage": "Text52",
+      "notes": "Text53"
+    }
+  ],
+  "text_blocks": {
+    "class_features": "Text54",
+    "species_traits": "Text57",
+    "feats": "Text58",
+    "weapon_proficiencies": "Text59",
+    "tool_proficiencies": "Text60",
+    "appearance": "Text96",
+    "backstory_and_personality": "Text97",
+    "languages": "Text98",
+    "equipment": "Text99",
+    "alignment": "Text100"
+  }
+}
