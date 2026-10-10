@@ -1,7 +1,21 @@
 import typer
 
-from .new import app as new_app
+from .chat import Chat
 
 app = typer.Typer()
 
-app.add_typer(new_app)
+
+def _read() -> str:
+    try:
+        return typer.prompt(
+            ">", prompt_suffix=" ", default="", show_default=False
+        )
+    except typer.Abort:
+        raise EOFError from None
+
+
+@app.callback(invoke_without_command=True)
+def chat():
+    """Open a Chat."""
+
+    Chat(read=_read, write=typer.echo).run()
