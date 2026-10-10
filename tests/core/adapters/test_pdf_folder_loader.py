@@ -49,7 +49,7 @@ def test_loads_one_document_per_page_numbered_from_one(tmp_path):
 
     assert [d.page_content for d in docs] == ["first page", "second page"]
     assert [d.metadata["page"] for d in docs] == [1, 2]
-    assert docs[0].metadata["source"] == str(tmp_path / "a.pdf")
+    assert docs[0].metadata["source"] == "a.pdf"
 
 
 def test_reads_only_top_level_pdfs_sorted_by_name(tmp_path):
@@ -64,13 +64,18 @@ def test_reads_only_top_level_pdfs_sorted_by_name(tmp_path):
     assert [d.page_content for d in docs] == ["aye", "bee"]
 
 
-def test_skips_pages_without_text_with_a_warning(tmp_path):
-    make_pdf(tmp_path / "a.pdf", ["text", ""])
+def test_skips_pages_without_text_with_one_warning_per_file(tmp_path):
+    make_pdf(tmp_path / "a.pdf", ["", "", "text", "", "x", ""])
+    make_pdf(tmp_path / "b.pdf", ["", "text"])
 
-    with pytest.warns(UserWarning, match="page 2"):
+    with pytest.warns(UserWarning) as caught:
         docs = PdfFolderLoader(tmp_path).load()
 
-    assert [d.metadata["page"] for d in docs] == [1]
+    assert [str(w.message) for w in caught] == [
+        "a.pdf: no text on pages 1-2, 4, 6, skipping",
+        "b.pdf: no text on pages 1, skipping",
+    ]
+    assert [d.metadata["page"] for d in docs] == [3, 5, 2]
 
 
 def test_missing_folder_fails(tmp_path):

@@ -11,8 +11,10 @@ class PdfFolderLoader:
     """Loads one Document per page from the PDFs in a source folder.
 
     Only the folder's top-level ``*.pdf`` files are read, sorted by
-    name. Pages are numbered from 1, as printed. Pages without
-    extractable text are skipped with a warning.
+    name. A Document's source is the file name, and its page is the
+    PDF page index counted from 1, which can differ from the printed
+    number. Pages without extractable text are skipped, with one
+    warning per file.
     """
 
     def __init__(self, folder: Path) -> None:
@@ -37,21 +39,41 @@ class PdfFolderLoader:
     def _load_pdf(path: Path) -> list[Document]:
         reader = pypdf.PdfReader(path)
         documents = []
+        blank = []
 
         for number, page in enumerate(reader.pages, start=1):
             text = (page.extract_text() or "").strip()
             if not text:
-                warnings.warn(
-                    f"{path}: page {number} has no text, skipping",
-                    stacklevel=2,
-                )
+                blank.append(number)
                 continue
 
             documents.append(
                 Document(
                     page_content=text,
-                    metadata={SOURCE: str(path), PAGE: number},
+                    metadata={SOURCE: path.name, PAGE: number},
                 )
             )
 
+        if blank:
+            warnings.warn(
+                f"{path.name}: no text on pages "
+                f"{_format_pages(blank)}, skipping",
+                stacklevel=2,
+            )
+
         return documents
+
+
+def _format_pages(pages: list[int]) -> str:
+    """Format ascending page numbers as ranges: ``1-3, 8, 24``."""
+    runs = [[pages[0], pages[0]]]
+
+    for page in pages[1:]:
+        if page == runs[-1][1] + 1:
+            runs[-1][1] = page
+        else:
+            runs.append([page, page])
+
+    return ", ".join(
+        str(start) if start == end else f"{start}-{end}" for start, end in runs
+    )
