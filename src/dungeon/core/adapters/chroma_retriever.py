@@ -19,13 +19,16 @@ class ChromaRetriever:
         self._path = path
         self._embeddings = embeddings
 
-    def search(self, query: str, k: int) -> list[Document]:
+    def check(self) -> None:
         # Opening Chroma creates the folder, so check before that.
         if not self._path.is_dir():
             raise IndexNotBuiltError(NOT_BUILT)
-
         chroma = open_chroma(self._path, self._embeddings)
         if not chroma.get(limit=1)["ids"]:
             raise IndexNotBuiltError(NOT_BUILT)
 
-        return chroma.similarity_search(query, k=k)
+    def search(self, query: str, k: int) -> list[Document]:
+        self.check()
+        return open_chroma(self._path, self._embeddings).similarity_search(
+            query, k=k
+        )

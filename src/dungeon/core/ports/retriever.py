@@ -13,4 +13,8 @@ class Retriever(Protocol):
     Each Chunk carries the Source and Page it came from.
     """
 
+    def check(self) -> None:
+        """Raise IndexNotBuiltError if there is nothing to search."""
+        ...
+
     def search(self, query: str, k: int) -> list[Document]: ...

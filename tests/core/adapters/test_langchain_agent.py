@@ -46,6 +46,9 @@ class FakeRetriever:
         self._hits = list(hits)
         self._error = error
 
+    def check(self) -> None:
+        pass
+
     def search(self, query: str, k: int):
         if self._error:
             raise self._error

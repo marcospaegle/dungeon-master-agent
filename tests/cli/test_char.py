@@ -231,3 +231,37 @@ def test_a_factory_that_cannot_build_the_agent_says_why(tmp_path):
     ).run()
 
     assert "ANTHROPIC_API_KEY is not set." in "\n".join(output)
+
+
+def test_a_stray_json_file_does_not_break_the_list(tmp_path):
+    save_brannoch(tmp_path)
+    (tmp_path / "notes.json").write_text("not json")
+    (tmp_path / "other.json").write_text('{"a": 1}')
+
+    output = run(tmp_path, finishing_agent(), "/char", "")
+
+    assert "1. Brannoch" in output
+    assert "2." not in output
+
+
+def test_saving_an_edit_under_the_same_name_does_not_ask_to_overwrite(
+    tmp_path,
+):
+    save_brannoch(tmp_path, personality="Gruff")
+
+    output = run(tmp_path, finishing_agent(), "/char", "1", "hi", "done", "y")
+
+    assert "Save Brannoch? [y/N]" in output
+    assert "already exists" not in output
+
+
+def test_renaming_an_edit_onto_another_character_asks_to_overwrite(tmp_path):
+    save_brannoch(tmp_path)
+    save_brannoch(tmp_path, name="Aelar")
+    agent = ScriptedAgent(
+        AgentReply("Renamed.", finished=fighter(name="Aelar"))
+    )
+
+    output = run(tmp_path, agent, "/char", "2", "rename", "n")
+
+    assert "Aelar already exists. Overwrite? [y/N]" in output

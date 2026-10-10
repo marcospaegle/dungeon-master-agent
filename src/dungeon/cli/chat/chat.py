@@ -31,6 +31,7 @@ class Chat:
         self._store = store
         self._agent: Agent | None = None
         self._talked = False
+        self._editing: str | None = None
         self._running = False
         self._commands = {
             "/help": ("List the Commands", self._help),
@@ -108,6 +109,7 @@ class Chat:
             self._write(str(error))
             return
         self._talked = False
+        self._editing = draft.name if draft else None
         self._write("Character creation. Type /exit to leave.")
 
     def _exit(self) -> None:
@@ -131,7 +133,7 @@ class Chat:
             return
         character = reply.finished
         self._agent = None
-        if self._store.exists(character):
+        if self._store.exists(character) and character.name != self._editing:
             question = f"{character.name} already exists. Overwrite? [y/N]"
         else:
             question = f"Save {character.name}? [y/N]"

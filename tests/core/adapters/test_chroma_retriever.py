@@ -66,3 +66,14 @@ def test_an_empty_index_says_to_run_dungeon_build(tmp_path):
 
     with pytest.raises(IndexNotBuiltError, match="dungeon build"):
         ChromaRetriever(tmp_path, EMBEDDINGS).search("anything", k=1)
+
+
+def test_check_passes_once_something_is_indexed(tmp_path):
+    index(tmp_path, chunk("a rules page"))
+
+    ChromaRetriever(tmp_path, EMBEDDINGS).check()
+
+
+def test_check_says_to_run_dungeon_build_when_nothing_is_indexed(tmp_path):
+    with pytest.raises(IndexNotBuiltError, match="dungeon build"):
+        ChromaRetriever(tmp_path / "missing", EMBEDDINGS).check()

@@ -2,6 +2,7 @@ import pytest
 
 from dungeon.core import agent_factory
 from dungeon.core.ports.agent import AgentUnavailableError
+from dungeon.core.ports.retriever import IndexNotBuiltError
 
 KEYS = {
     "ANTHROPIC_API_KEY": "anthropic-key",
@@ -14,6 +15,15 @@ def create(tmp_path, environ):
     return agent_factory.create_agent_factory(tmp_path, environ)(None)
 
 
+class FakeRetriever:
+    def __init__(self, error=None) -> None:
+        self._error = error
+
+    def check(self) -> None:
+        if self._error:
+            raise self._error
+
+
 @pytest.fixture(autouse=True)
 def fakes(monkeypatch):
     built = {}
@@ -24,7 +34,9 @@ def fakes(monkeypatch):
 
     monkeypatch.setattr(agent_factory, "ChatAnthropic", fake_chat_anthropic)
     monkeypatch.setattr(
-        agent_factory, "create_retriever", lambda *args, **kwargs: object()
+        agent_factory,
+        "create_retriever",
+        lambda *args, **kwargs: built.get("retriever", FakeRetriever()),
     )
     monkeypatch.setattr(
         agent_factory, "LangchainAgent", lambda *args: built.update(agent=args)
@@ -59,3 +71,14 @@ def test_a_missing_variable_is_named(tmp_path, missing):
 def test_an_unknown_provider_lists_the_known_ones(tmp_path):
     with pytest.raises(AgentUnavailableError, match="anthropic"):
         create(tmp_path, KEYS | {"DUNGEON_PROVIDER": "nope"})
+
+
+def test_a_missing_index_is_reported_before_the_agent_starts(tmp_path, fakes):
+    fakes["retriever"] = FakeRetriever(
+        IndexNotBuiltError("Run `dungeon build` first.")
+    )
+
+    with pytest.raises(AgentUnavailableError, match="dungeon build"):
+        create(tmp_path, KEYS)
+
+    assert "agent" not in fakes

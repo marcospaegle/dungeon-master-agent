@@ -6,6 +6,7 @@ from langchain_anthropic import ChatAnthropic
 from dungeon.core.adapters.langchain_agent import LangchainAgent
 from dungeon.core.character import Character
 from dungeon.core.ports.agent import Agent, AgentUnavailableError
+from dungeon.core.ports.retriever import IndexNotBuiltError
 from dungeon.core.retrieval_factory import create_retriever
 
 DEFAULT_PROVIDER = "anthropic"
@@ -57,6 +58,10 @@ def create_agent_factory(
             embedding_model=_require(environ, "GOOGLE_EMBEDDING_MODEL"),
             api_key=_require(environ, "GOOGLE_API_KEY"),
         )
+        try:
+            retriever.check()
+        except IndexNotBuiltError as error:
+            raise AgentUnavailableError(str(error)) from error
         return LangchainAgent(model, retriever, draft)
 
     return create
