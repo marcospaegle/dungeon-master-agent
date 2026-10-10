@@ -24,25 +24,41 @@ def stored(path) -> list[str]:
 
 
 def test_persists_across_instances(tmp_path):
-    ChromaStore(tmp_path, EMBEDDINGS).add([chunk("x")])
+    ChromaStore(tmp_path, EMBEDDINGS).add([chunk("x")], ["a#1#0"])
 
     assert stored(tmp_path) == ["x"]
 
 
-def test_readding_a_source_replaces_its_chunks(tmp_path):
+def test_adding_an_existing_id_replaces_it(tmp_path):
     store = ChromaStore(tmp_path, EMBEDDINGS)
-    store.add([chunk("one"), chunk("two"), chunk("other", "b.pdf")])
+    store.add([chunk("one"), chunk("two")], ["a#1#0", "a#1#1"])
 
-    store.add([chunk("one edited")])
+    store.add([chunk("one edited")], ["a#1#0"])
 
-    assert stored(tmp_path) == ["one edited", "other"]
+    assert stored(tmp_path) == ["one edited", "two"]
 
 
-def test_rerunning_the_same_batch_does_not_duplicate(tmp_path):
+def test_existing_ids_lists_what_is_stored(tmp_path):
     store = ChromaStore(tmp_path, EMBEDDINGS)
-    batch = [chunk("one"), chunk("two", page=2)]
 
-    store.add(batch)
-    store.add(batch)
+    assert store.existing_ids() == set()
 
-    assert stored(tmp_path) == ["one", "two"]
+    store.add([chunk("one"), chunk("two")], ["a#1#0", "a#1#1"])
+
+    assert ChromaStore(tmp_path, EMBEDDINGS).existing_ids() == {
+        "a#1#0",
+        "a#1#1",
+    }
+
+
+def test_clear_removes_everything_and_stays_usable(tmp_path):
+    store = ChromaStore(tmp_path, EMBEDDINGS)
+    store.add([chunk("one")], ["a#1#0"])
+
+    store.clear()
+
+    assert stored(tmp_path) == []
+
+    store.add([chunk("two")], ["a#1#0"])
+
+    assert stored(tmp_path) == ["two"]
