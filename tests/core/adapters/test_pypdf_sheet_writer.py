@@ -1,3 +1,5 @@
+import json
+from importlib import resources
 from pathlib import Path
 
 import pytest
@@ -62,16 +64,6 @@ def filled(tmp_path: Path, character: Character) -> dict[str, str]:
     return {name: field.get("/V") for name, field in fields.items()}
 
 
-def test_writes_who_the_character_is(tmp_path):
-    values = filled(tmp_path, brannoch())
-
-    assert values["Text1"] == "Brannoch"
-    assert values["Text6"] == "Soldier"
-    assert values["Text7"] == "Fighter"
-    assert values["Text8"] == "Human"
-    assert values["Text11"] == "1"
-
-
 def lines(value: str) -> list[str]:
     return value.replace("\r\n", "\n").replace("\r", "\n").split("\n")
 
@@ -89,6 +81,16 @@ def widgets(reader: PdfReader) -> dict:
 
 def ticked(values: dict, name: str) -> bool:
     return values[name] == "/Yes"
+
+
+def test_writes_who_the_character_is(tmp_path):
+    values = filled(tmp_path, brannoch())
+
+    assert values["Text1"] == "Brannoch"
+    assert values["Text6"] == "Soldier"
+    assert values["Text7"] == "Fighter"
+    assert values["Text8"] == "Human"
+    assert values["Text11"] == "1"
 
 
 def test_writes_ability_scores_modifiers_and_saving_throws(tmp_path):
@@ -283,3 +285,55 @@ def test_single_line_fields_shrink_long_text_to_fit(tmp_path):
     assert " 0 Tf" in fields["Text28"]["/DA"]  # size
     assert " 0 Tf" in fields["Text32"]["/DA"]  # damage and type
     assert " 10 Tf" in fields["Text54"]["/DA"]  # multiline block unchanged
+
+
+def mapped_field_names() -> set[str]:
+    data = resources.files("dungeon.core.adapters")
+    fields = json.loads((data / "character_sheet_fields.json").read_text())
+
+    def names(node) -> set[str]:
+        if isinstance(node, str):
+            return {node}
+        children = node.values() if isinstance(node, dict) else node
+        return set().union(*(names(child) for child in children))
+
+    return names(fields)
+
+
+def test_every_mapped_text_field_is_written(tmp_path):
+    character = brannoch(
+        speed="30 ft.",
+        size="Medium",
+        alignment="Lawful Good",
+        appearance="Scarred.",
+        personality="Blunt.",
+        backstory="A sergeant.",
+        languages=("Common",),
+        attacks=tuple(
+            Attack(f"Dagger {n}", "+4", "1d4+2", "") for n in range(6)
+        ),
+        class_features=("Second Wind",),
+        species_traits=("Resourceful",),
+        feats=("Savage Attacker",),
+        weapon_proficiencies=("Martial",),
+        tool_proficiencies=("Dice set",),
+        equipment=("Longsword",),
+    )
+
+    values = filled(tmp_path, character)
+
+    kinds = {
+        name: field.get("/FT")
+        for name, field in PdfReader(TEMPLATE).get_fields().items()
+    }
+    text_fields = {n for n in mapped_field_names() if kinds[n] == "/Tx"}
+    blank = {n for n in text_fields if not values.get(n)}
+    # an attack's notes are legitimately empty in this sample
+    assert blank == {
+        "Text33",
+        "Text37",
+        "Text41",
+        "Text45",
+        "Text49",
+        "Text53",
+    }

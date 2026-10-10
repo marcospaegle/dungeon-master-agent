@@ -6,11 +6,7 @@ from pathlib import Path
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject, TextStringObject
 
-from dungeon.core.character import (
-    HIT_DIE,
-    SAVING_THROW_PROFICIENCIES,
-    Character,
-)
+from dungeon.core.character import Character
 from dungeon.core.ports.sheet_writer import SheetTemplateError
 
 _TICKED = "/Yes"
@@ -60,6 +56,10 @@ class PypdfSheetWriter:
 
     The template's fields have opaque names, so a field map (a data
     file next to this module) says which field shows which value.
+
+    Left blank on purpose: XP, temporary hit points, spent Hit Dice,
+    death saves, Heroic Inspiration, coins, magic item attunement and
+    the whole spellcasting area, which the Character does not hold yet.
     """
 
     def __init__(self, template: Path):
@@ -96,7 +96,7 @@ class PypdfSheetWriter:
             fields["proficiency_bonus"]: _signed(character.proficiency_bonus),
         }
         saves = character.saving_throws
-        proficient = SAVING_THROW_PROFICIENCIES[character.character_class]
+        proficient = character.saving_throw_proficiencies
         for ability, score in character.ability_scores.items():
             field = fields["abilities"][ability]
             values[field["score"]] = str(score)
@@ -106,7 +106,7 @@ class PypdfSheetWriter:
             values[field["save"]] = _signed(saves[ability])
             if ability in proficient:
                 values[field["save_proficient"]] = _TICKED
-        trained = character.skill_proficiencies | character.expertise
+        trained = character.trained_skills
         for skill, bonus in character.skill_bonuses.items():
             field = fields["skills"][skill]
             values[field["bonus"]] = _signed(bonus)
@@ -152,12 +152,11 @@ class PypdfSheetWriter:
 
     def _combat(self, character: Character) -> dict[str, str]:
         fields = self._fields["combat"]
-        hit_die = HIT_DIE[character.character_class]
         values = {
             fields["armor_class"]: str(character.armor_class),
             fields["hp_current"]: str(character.hit_points),
             fields["hp_max"]: str(character.hit_points),
-            fields["hit_dice_max"]: f"{character.level}d{hit_die}",
+            fields["hit_dice_max"]: character.hit_dice,
             fields["initiative"]: _signed(character.initiative),
             fields["speed"]: character.speed,
             fields["size"]: character.size,

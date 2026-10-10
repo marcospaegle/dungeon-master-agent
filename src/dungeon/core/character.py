@@ -302,13 +302,22 @@ class Character:
         return PROFICIENCY_BONUS
 
     @property
+    def saving_throw_proficiencies(self) -> frozenset[Ability]:
+        return SAVING_THROW_PROFICIENCIES[self.character_class]
+
+    @property
     def saving_throws(self) -> Mapping[Ability, int]:
-        proficient = SAVING_THROW_PROFICIENCIES[self.character_class]
+        proficient = self.saving_throw_proficiencies
         return {
             ability: bonus
             + (self.proficiency_bonus if ability in proficient else 0)
             for ability, bonus in self.ability_modifiers.items()
         }
+
+    @property
+    def trained_skills(self) -> frozenset[Skill]:
+        """Skills with proficiency, Expertise included."""
+        return self.skill_proficiencies | self.expertise
 
     @property
     def skill_bonuses(self) -> Mapping[Skill, int]:
@@ -332,6 +341,11 @@ class Character:
     @property
     def initiative(self) -> int:
         return self.ability_modifiers[DEX]
+
+    @property
+    def hit_dice(self) -> str:
+        """The Hit Dice a Character has, such as "1d10"."""
+        return f"{self.level}d{HIT_DIE[self.character_class]}"
 
     @property
     def hit_points(self) -> int:
