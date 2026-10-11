@@ -15,3 +15,6 @@ tasks/
 
 # Secrets and local data
 .env
+
+# Eval results
+evals/results/

@@ -55,3 +55,9 @@ The Command (`/char`) in which the user builds a new Character or
 edits an existing one with the help of an agent, which is limited to
 that task. Ends with the user confirming the Character, which produces
 its Character sheet.
+
+**Eval**:
+A scripted scenario that scores the Character creation agent: the
+runner plays fixed user replies against it and applies checks to the
+saved Character. Run with `uv run python -m evals`, never by pytest,
+because it calls a real model.
