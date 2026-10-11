@@ -31,6 +31,10 @@ def _play(case: Case, agent: Agent) -> tuple[Character | None, list[str]]:
         transcript.append(reply.text)
         previous = reply.text
         if reply.finished is not None:
+            if turn is not case.turns[-1]:
+                raise ScriptError(
+                    "the agent finished before the confirmation turn"
+                )
             return reply.finished, transcript
     return None, transcript
 

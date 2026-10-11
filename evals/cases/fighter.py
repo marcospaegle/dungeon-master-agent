@@ -2,6 +2,8 @@
 
 The expected numbers are worked by hand from the scripted choices
 (final scores 17/14/14/8/10/12), not computed by the code under test.
+The species is Orc because the 2024 Human adds a skill and a feat
+choice that would change the counts below.
 """
 
 from dungeon.core.character import (
@@ -85,12 +87,12 @@ def _derived(run: Run) -> str | None:
 FIGHTER = Case(
     name="fighter",
     scenario=(
-        "A Human Fighter called Brannoch, Soldier background, standard "
+        "An Orc Fighter called Brannoch, Soldier background, standard "
         "array, Chain Mail and a Greatsword, no spells."
     ),
     turns=(
         Turn(
-            "I want to make a Human Fighter called Brannoch with the "
+            "I want to make an Orc Fighter called Brannoch with the "
             "Soldier background, taking the Great Weapon Fighting style."
         ),
         Turn(
@@ -110,7 +112,7 @@ FIGHTER = Case(
         ),
         Turn(
             "He is a gruff veteran who trusts discipline over words. "
-            "Lawful Good, tall and scarred. He speaks Common.",
+            "Lawful Good, tall and scarred. He speaks Common and Orc.",
             answers="personality|backstory|alignment|trait",
         ),
         Turn(
@@ -123,7 +125,7 @@ FIGHTER = Case(
         Check("class and choices", _class_and_choices),
         Check("skills", _skills),
         Check(
-            "Fighter features match the PHB",
+            "Fighter features match the 2024 PHB",
             lambda run: _mentions(
                 run.character.class_features,
                 ["Second Wind", "Weapon Mastery"],

@@ -90,6 +90,17 @@ def test_an_unscripted_question_fails_the_case(tmp_path):
     assert result.checks == ()
 
 
+def test_finishing_before_the_confirmation_fails_the_case(tmp_path):
+    agent = ScriptedAgent("Done already.")
+
+    result = run_case(
+        case(Check("name", named_fighter)), agent, store(tmp_path)
+    )
+
+    assert not result.passed
+    assert "before the confirmation" in result.failure
+
+
 def test_never_reaching_confirmation_fails_the_case(tmp_path):
     agent = ScriptedAgent(
         "Which abilities?",
