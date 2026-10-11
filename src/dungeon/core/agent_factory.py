@@ -32,6 +32,15 @@ def _anthropic(environ: Mapping[str, str], model: str):
 PROVIDERS = {"anthropic": _anthropic}
 
 
+def create_chat_model(environ: Mapping[str, str], provider: str, model: str):
+    """The chat model for a provider, from the provider table."""
+    if provider not in PROVIDERS:
+        raise AgentUnavailableError(
+            f"Unknown provider {provider!r}; known: {', '.join(PROVIDERS)}."
+        )
+    return PROVIDERS[provider](environ, model)
+
+
 def create_agent_factory(
     index: Path, environ: Mapping[str, str]
 ) -> Callable[[Character | None], Agent]:
@@ -44,14 +53,10 @@ def create_agent_factory(
     """
 
     def create(draft: Character | None) -> Agent:
-        provider = environ.get("DUNGEON_PROVIDER") or DEFAULT_PROVIDER
-        if provider not in PROVIDERS:
-            raise AgentUnavailableError(
-                f"Unknown DUNGEON_PROVIDER {provider!r}; "
-                f"known: {', '.join(PROVIDERS)}."
-            )
-        model = PROVIDERS[provider](
-            environ, environ.get("DUNGEON_MODEL") or DEFAULT_MODEL
+        model = create_chat_model(
+            environ,
+            environ.get("DUNGEON_PROVIDER") or DEFAULT_PROVIDER,
+            environ.get("DUNGEON_MODEL") or DEFAULT_MODEL,
         )
         retriever = create_retriever(
             index,

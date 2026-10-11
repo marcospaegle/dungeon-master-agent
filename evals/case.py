@@ -17,6 +17,12 @@ class Turn(NamedTuple):
     answers: str = ""
 
 
+CONFIRM = Turn(
+    "Yes, that looks right. Finish it.",
+    answers="confirm|look right|ready|correct",
+)
+
+
 @dataclass(frozen=True)
 class Run:
     """What a finished case leaves behind for the checks to inspect."""
@@ -32,12 +38,27 @@ class Check(NamedTuple):
     check: Callable[[Run], str | None]
 
 
+class Criterion(NamedTuple):
+    """One thing the judge grades a transcript on."""
+
+    name: str
+    text: str
+
+
 @dataclass(frozen=True)
 class Case:
+    """A scripted scenario.
+
+    ``rubric`` is graded by the judge on top of the common rubric.
+    ``existing`` is a saved Character the case starts by updating.
+    """
+
     name: str
     scenario: str
     turns: tuple[Turn, ...]
     checks: tuple[Check, ...]
+    rubric: tuple[Criterion, ...] = ()
+    existing: Character | None = None
 
 
 @dataclass(frozen=True)
