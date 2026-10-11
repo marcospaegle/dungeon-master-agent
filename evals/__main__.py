@@ -26,7 +26,12 @@ def main(names: list[str]) -> int:
     if unknown:
         print(f"Unknown case: {', '.join(unknown)}; known: {', '.join(CASES)}")
         return 2
-    environ = {**dotenv_values(), **os.environ}
+    # .env.eval overrides .env, so it can pick the model under test.
+    environ = {
+        **dotenv_values(),
+        **dotenv_values(".env.eval"),
+        **os.environ,
+    }
     create_agent = create_agent_factory(STORAGE / "chroma", environ)
     results = []
     for case in (CASES[n] for n in names or CASES):
