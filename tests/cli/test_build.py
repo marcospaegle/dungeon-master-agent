@@ -15,6 +15,7 @@ runner = CliRunner()
 
 
 def test_build_requires_the_api_key(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("dungeon.cli.build.load_dotenv", lambda: None)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setenv("GOOGLE_EMBEDDING_MODEL", "model")
