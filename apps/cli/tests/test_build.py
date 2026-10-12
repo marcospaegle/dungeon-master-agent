@@ -8,8 +8,10 @@ from typer.testing import CliRunner
 
 from dungeon_cli import app
 from dungeon_cli.build import _format_elapsed
-from dungeon_core.adapters.recursive_splitter import RecursiveSplitter
-from dungeon_core.indexing_service import IndexingService
+from dungeon_core.knowledge.adapters.recursive_splitter import (
+    RecursiveSplitter,
+)
+from dungeon_core.knowledge.indexing_service import IndexingService
 
 runner = CliRunner()
 
@@ -104,11 +106,15 @@ class FakeStore:
 def patch_service(monkeypatch, loader, store):
     """Make the command index through fakes instead of real adapters."""
 
+    class FakeKnowledgeFactory:
+        def __init__(self, settings):
+            pass
+
+        def indexing_service(self, source_folder, store_path):
+            return IndexingService(loader, RecursiveSplitter(), store)
+
     monkeypatch.setattr(
-        "dungeon_cli.build.create_indexing_service",
-        lambda *args, **kwargs: IndexingService(
-            loader, RecursiveSplitter(), store
-        ),
+        "dungeon_cli.build.KnowledgeFactory", FakeKnowledgeFactory
     )
 
 
@@ -172,18 +178,24 @@ def test_build_logs_the_core_modules_too(fake_build, monkeypatch):
 def test_build_passes_its_options_to_the_factory(tmp_path, monkeypatch):
     received = {}
 
-    def factory(source_folder, store, embedding_model, api_key):
-        received.update(
-            source_folder=source_folder,
-            store=store,
-            embedding_model=embedding_model,
-            api_key=api_key,
-        )
-        return IndexingService(FakeLoader(), RecursiveSplitter(), FakeStore())
+    class FakeKnowledgeFactory:
+        def __init__(self, settings):
+            received.update(
+                embedding_model=settings.embedding_model,
+                api_key=settings.google_api_key,
+            )
+
+        def indexing_service(self, source_folder, store):
+            received.update(source_folder=source_folder, store=store)
+            return IndexingService(
+                FakeLoader(), RecursiveSplitter(), FakeStore()
+            )
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("dungeon_cli.build.load_dotenv", lambda: None)
-    monkeypatch.setattr("dungeon_cli.build.create_indexing_service", factory)
+    monkeypatch.setattr(
+        "dungeon_cli.build.KnowledgeFactory", FakeKnowledgeFactory
+    )
     monkeypatch.setenv("GOOGLE_API_KEY", "key")
     monkeypatch.setenv("GOOGLE_EMBEDDING_MODEL", "model")
 

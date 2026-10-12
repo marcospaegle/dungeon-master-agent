@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.markdown import Markdown
 
-from dungeon_core.adapters.char_command import CharCommand
-from dungeon_core.adapters.pypdf_sheet_writer import PypdfSheetWriter
-from dungeon_core.agent_factory import create_agent_factory
-from dungeon_core.character_store import CharacterStore
+from dungeon_core.agents.character_builder.factory import create_agent_factory
+from dungeon_core.characters.adapters.json_repository import (
+    JsonCharacterRepository,
+)
+from dungeon_core.characters.adapters.pypdf_sheet_writer import (
+    PypdfSheetWriter,
+)
+from dungeon_core.characters.service import CharacterService
+from dungeon_core.chat.char_command import CharCommand
 
 from .chat import Chat
 
@@ -42,11 +47,12 @@ def chat():
         commands=[
             CharCommand(
                 create_agent_factory(STORAGE / "chroma", os.environ),
-                CharacterStore(
-                    STORAGE / "characters",
+                CharacterService(
+                    JsonCharacterRepository(STORAGE / "characters"),
                     PypdfSheetWriter(
                         STORAGE / "assets" / "character_sheet.pdf"
                     ),
+                    STORAGE / "characters",
                 ),
             )
         ],

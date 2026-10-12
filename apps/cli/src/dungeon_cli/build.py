@@ -17,7 +17,8 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from dungeon_core.indexing_factory import create_indexing_service
+from dungeon_core.config.settings import MissingSettingError, Settings
+from dungeon_core.knowledge.factory import KnowledgeFactory
 
 app = typer.Typer()
 
@@ -73,13 +74,6 @@ def _log_warnings():
         warnings.showwarning = console_showwarning
 
 
-def _require_env(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise typer.BadParameter(f"{name} is not set (environment or .env).")
-    return value
-
-
 def _format_elapsed(seconds: float) -> str:
     minutes, seconds = divmod(round(seconds), 60)
     return f"{minutes}m {seconds}s" if minutes else f"{seconds}s"
@@ -112,12 +106,12 @@ def build(
             with _log_warnings():
                 load_dotenv()
 
-                service = create_indexing_service(
-                    source_folder,
-                    store,
-                    embedding_model=_require_env("GOOGLE_EMBEDDING_MODEL"),
-                    api_key=_require_env("GOOGLE_API_KEY"),
-                )
+                try:
+                    service = KnowledgeFactory(
+                        Settings(os.environ)
+                    ).indexing_service(source_folder, store)
+                except MissingSettingError as error:
+                    raise typer.BadParameter(str(error)) from error
 
                 started = time.monotonic()
                 with Progress(

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from dotenv import dotenv_values
 
-from dungeon_core.agent_factory import create_agent_factory
+from dungeon_core.agents.character_builder.factory import create_agent_factory
 
 ENVIRON = {**dotenv_values(), **os.environ}
 INDEX = Path("storage/chroma")

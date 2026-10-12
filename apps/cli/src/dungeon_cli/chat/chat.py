@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 
-from dungeon_core.ports.command import Command, Reply
+from dungeon_core.chat.command import Command, Reply
 
 HINT = "Type /help to list the Commands."
 

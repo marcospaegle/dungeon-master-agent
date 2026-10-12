@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 
 from dungeon_cli import app
 from dungeon_cli.chat.chat import Chat
-from dungeon_core.ports.command import Reply
+from dungeon_core.chat.command import Reply
 
 runner = CliRunner()
 
@@ -59,7 +59,7 @@ def test_a_command_with_trailing_text_still_runs():
 
 def test_agent_replies_render_as_markdown(monkeypatch, tmp_path):
     from dungeon_cli import chat as chat_module
-    from dungeon_core.ports.agent import AgentReply
+    from dungeon_core.agents.character_builder.agent import AgentReply
 
     class Agent:
         def reply(self, text):
