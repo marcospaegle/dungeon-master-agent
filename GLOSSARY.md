@@ -30,3 +30,58 @@ Indexing from scratch, discarding everything already indexed. Needed
 when the Sources, the chunking or the embedding model change.
 Otherwise indexing only adds the Chunks not yet indexed, which is how
 an interrupted run is finished.
+
+**Frontend**:
+A way of talking to the program: the terminal chat, a web API or a
+Discord bot. Every Frontend is a thin layer over the same Core and
+holds no rules of its own.
+
+**Core**:
+Everything the Frontends share: the Agents, the Characters, the
+knowledge from the Sources and the Chat routing. It knows nothing
+about any Frontend.
+
+**Agent**:
+A worker that does one task very well, with its own instructions and
+tools: today the Character Builder, later a Dungeon Master that runs a
+D&D session. An Agent is limited to its task and turns the user's
+messages into replies.
+
+**Tool**:
+Something an Agent can call to look up or change something, such as
+searching the rules or saving a Character. Tools are shared: any
+Agent can be given any Tool, and an Agent has only the Tools it is
+given.
+
+**Chat**:
+A running conversation between one user and the program in a
+Frontend. It routes the user's text to the Active Command's Agent.
+Lives only as long as the program runs. Not a D&D game session.
+
+**Command**:
+A chat input starting with `/` that only starts something, such as
+`/char` starting the Character Builder. It does no work itself: the
+work belongs to the Agent it starts. It does not depend on the
+Frontend that runs it.
+
+**Active Command**:
+The Command whose Agent receives text that is not a Command, from
+when it starts until it finishes or the user leaves it with `/exit`.
+
+**Character**:
+A player character: the choices that define it (race, class,
+abilities, background and so on) and the numbers derived from them. It
+is the single source for the Character sheet.
+
+**Character sheet**:
+The printable form a Character is written onto. The blank form is the
+template; the filled-in copy is the output.
+
+**Character creation**:
+The Command (`/char`) in which the user builds a new Character or
+edits an existing one with the Character Builder. Ends with the user
+confirming the Character, which produces its Character sheet.
+
+**Character Builder**:
+The Agent that guides the user through Character creation and does
+nothing else.
