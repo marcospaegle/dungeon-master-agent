@@ -43,8 +43,7 @@ about any Frontend.
 
 **Agent**:
 A worker that does one task very well, with its own instructions and
-tools: today the Character Builder, later a Dungeon Master that runs a
-D&D session. An Agent is limited to its task and turns the user's
+tools: the Concierge or a Specialist. An Agent is limited to its task and turns the user's
 messages into replies.
 
 **Tool**:
@@ -55,18 +54,33 @@ given.
 
 **Chat**:
 A running conversation between one user and the program in a
-Frontend. It routes the user's text to the Active Command's Agent.
-Lives only as long as the program runs. Not a D&D game session.
+Frontend. It routes the user's text to the Active Agent. Lives only as
+long as the program runs. Not a D&D game session.
+
+**Concierge**:
+The Agent the user talks to by default. It understands what the user
+wants and hands the conversation to the Specialist that does it. It
+does no specialist work itself.
+
+**Specialist**:
+An Agent that does one task and is reached through a Handoff from the
+Concierge: today the Character Builder, later an Adventure creator and
+a Dungeon Master.
+
+**Handoff**:
+The Concierge giving the conversation to a Specialist, because of what
+the user said and not because of a Command. The Specialist has the
+conversation until it finishes or the user leaves with `/exit`, and
+then the Concierge has it again.
+
+**Active Agent**:
+The Agent that receives the user's text that is not a Command: the
+Specialist after a Handoff, otherwise the Concierge.
 
 **Command**:
-A chat input starting with `/` that only starts something, such as
-`/char` starting the Character Builder. It does no work itself: the
-work belongs to the Agent it starts. It does not depend on the
-Frontend that runs it.
-
-**Active Command**:
-The Command whose Agent receives text that is not a Command, from
-when it starts until it finishes or the user leaves it with `/exit`.
+A chat input starting with `/` that the Chat answers itself: `/help`,
+`/exit` and `/quit`. A Command never starts an Agent. It does not
+depend on the Frontend that runs it.
 
 **Character**:
 A player character: the choices that define it (race, class,
@@ -78,8 +92,8 @@ The printable form a Character is written onto. The blank form is the
 template; the filled-in copy is the output.
 
 **Character creation**:
-The Command (`/char`) in which the user builds a new Character or
-edits an existing one with the Character Builder. Ends with the user
+The task in which the user builds a new Character or edits an
+existing one with the Character Builder, reached by a Handoff. Ends with the user
 confirming the Character, which produces its Character sheet.
 
 **Character Builder**:

@@ -1,5 +1,7 @@
 # Commands only start Agents; Agents and the Chat own the flow
 
+Superseded by [0006](0006-concierge-hands-off-to-specialists.md).
+
 A Command (`/char`) does nothing but name the Agent to start. The
 multi-step flow it used to hold, picking a saved Character and
 confirming the save, moves into the Agent as Tools and interrupts.
