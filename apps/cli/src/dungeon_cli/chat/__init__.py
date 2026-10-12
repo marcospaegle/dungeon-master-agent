@@ -3,10 +3,14 @@ from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
+from langgraph.checkpoint.memory import InMemorySaver
 from rich.console import Console
 from rich.markdown import Markdown
 
-from dungeon_core.agents.character_builder.factory import create_agent_factory
+from dungeon_core.agents.character_builder.factory import (
+    CharacterBuilderFactory,
+)
+from dungeon_core.agents.model_factory import ModelFactory
 from dungeon_core.characters.adapters.json_repository import (
     JsonCharacterRepository,
 )
@@ -14,9 +18,11 @@ from dungeon_core.characters.adapters.pypdf_sheet_writer import (
     PypdfSheetWriter,
 )
 from dungeon_core.characters.service import CharacterService
-from dungeon_core.chat.char_command import CharCommand
+from dungeon_core.chat.chat import Chat
+from dungeon_core.config.settings import Settings
+from dungeon_core.knowledge.factory import KnowledgeFactory
 
-from .chat import Chat
+from .terminal import Terminal
 
 app = typer.Typer()
 
@@ -41,19 +47,17 @@ def chat():
     """Open a Chat."""
 
     load_dotenv()
-    Chat(
-        read=_read,
-        write=_write,
-        commands=[
-            CharCommand(
-                create_agent_factory(STORAGE / "chroma", os.environ),
-                CharacterService(
-                    JsonCharacterRepository(STORAGE / "characters"),
-                    PypdfSheetWriter(
-                        STORAGE / "assets" / "character_sheet.pdf"
-                    ),
-                    STORAGE / "characters",
-                ),
-            )
-        ],
-    ).run()
+    settings = Settings(os.environ)
+    characters = CharacterService(
+        JsonCharacterRepository(STORAGE / "characters"),
+        PypdfSheetWriter(STORAGE / "assets" / "character_sheet.pdf"),
+        STORAGE / "characters",
+    )
+    builder = CharacterBuilderFactory(
+        ModelFactory(settings),
+        KnowledgeFactory(settings),
+        STORAGE / "chroma",
+        characters,
+        InMemorySaver(),
+    )
+    Terminal(Chat([builder.command()]), _read, _write).run()

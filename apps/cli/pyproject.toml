@@ -5,6 +5,7 @@ description = "The terminal frontend of the Dungeon Master Agent."
 requires-python = ">=3.14"
 dependencies = [
     "dungeon-core",
+    "langgraph>=1.2.14",
     "python-dotenv>=1.2.4",
     "rich>=15.0.0",
     "typer>=0.27.3",

@@ -5,7 +5,7 @@ Supersedes [0002](0002-own-agent-port.md).
 Each Agent is a Deep Agents graph, built by a class in
 `dungeon_core.agents`. We no longer own a tool-calling loop or an
 `Agent` port that hides it: the loop, tool calls, interrupts and
-conversation state (a checkpointer keyed by the Chat's `thread_id`)
+conversation state (a checkpointer, with one thread per started Agent)
 belong to the framework. The provider stays swappable because Deep
 Agents accepts any LangChain chat model. Frontends never see it: they
 talk to a `Chat`, which sends text in and returns Replies.

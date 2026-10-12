@@ -1,74 +1,78 @@
-from collections.abc import Callable, Mapping
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
+from deepagents import create_deep_agent
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
-from dungeon_core.agents.character_builder.agent import (
-    Agent,
-    AgentUnavailableError,
-)
-from dungeon_core.agents.character_builder.langchain_agent import (
-    LangchainAgent,
-)
-from dungeon_core.characters.character import Character
-from dungeon_core.config.settings import MissingSettingError, Settings
+from dungeon_core.agents.agent import AgentUnavailableError
+from dungeon_core.agents.allowlist import ToolAllowlistMiddleware
+from dungeon_core.agents.character_builder.builder import CharacterBuilder
+from dungeon_core.agents.character_builder.prompt import SYSTEM_PROMPT
+from dungeon_core.agents.model_factory import ModelFactory
+from dungeon_core.agents.session import AgentSession
+from dungeon_core.characters.draft import CharacterDraft
+from dungeon_core.characters.service import CharacterService
+from dungeon_core.chat.command import AgentCommand
+from dungeon_core.config.settings import MissingSettingError
 from dungeon_core.knowledge.factory import KnowledgeFactory
 from dungeon_core.knowledge.ports.retriever import IndexNotBuiltError
-
-DEFAULT_PROVIDER = "anthropic"
-DEFAULT_MODEL = "claude-sonnet-5-5"
-
-
-def _require(environ: Mapping[str, str], name: str) -> str:
-    value = environ.get(name)
-    if not value:
-        raise AgentUnavailableError(
-            f"{name} is not set (environment or .env)."
-        )
-    return value
+from dungeon_core.tools.character_tools import CharacterTools
+from dungeon_core.tools.rules_search import RulesSearchTool
 
 
-def _anthropic(environ: Mapping[str, str], model: str):
-    return ChatAnthropic(
-        model=model, api_key=_require(environ, "ANTHROPIC_API_KEY")
-    )
+class CharacterBuilderFactory:
+    """Assembles a Character Builder with its tools and its model.
 
-
-# A new provider is a new entry here, one adapter and a config change.
-PROVIDERS = {"anthropic": _anthropic}
-
-
-def create_chat_model(environ: Mapping[str, str], provider: str, model: str):
-    """The chat model for a provider, from the provider table."""
-    if provider not in PROVIDERS:
-        raise AgentUnavailableError(
-            f"Unknown provider {provider!r}; known: {', '.join(PROVIDERS)}."
-        )
-    return PROVIDERS[provider](environ, model)
-
-
-def create_agent_factory(
-    index: Path, environ: Mapping[str, str]
-) -> Callable[[Character | None], Agent]:
-    """Assemble the Character creation agent with its real adapters.
-
-    The provider and model come from DUNGEON_PROVIDER and
-    DUNGEON_MODEL, the keys from the environment. All of it is read
-    when a Character creation starts, so a missing key only matters
-    to the user of /char.
+    The checkpointer is the Frontend's choice, since where a
+    conversation is kept depends on where the Frontend runs. Nothing
+    is read until a Character creation starts, so a missing key only
+    matters to the user of /char.
     """
 
-    def create(draft: Character | None) -> Agent:
-        model = create_chat_model(
-            environ,
-            environ.get("DUNGEON_PROVIDER") or DEFAULT_PROVIDER,
-            environ.get("DUNGEON_MODEL") or DEFAULT_MODEL,
+    def __init__(
+        self,
+        models: ModelFactory,
+        knowledge: KnowledgeFactory,
+        index: Path,
+        characters: CharacterService,
+        checkpointer: BaseCheckpointSaver,
+    ) -> None:
+        self._models = models
+        self._knowledge = knowledge
+        self._index = index
+        self._characters = characters
+        self._checkpointer = checkpointer
+
+    def command(self) -> AgentCommand:
+        """The /char Command that starts a Character Builder."""
+        return AgentCommand(
+            name="/char",
+            description="Create a Character",
+            intro=(
+                "Character creation: tell me about the Character you "
+                "want, or ask to edit a saved one. Type /exit to leave."
+            ),
+            start=self.create,
         )
+
+    def create(self) -> CharacterBuilder:
+        model = self._models.create()
         try:
-            retriever = KnowledgeFactory(Settings(environ)).retriever(index)
+            retriever = self._knowledge.retriever(self._index)
             retriever.check()
         except (MissingSettingError, IndexNotBuiltError) as error:
             raise AgentUnavailableError(str(error)) from error
-        return LangchainAgent(model, retriever, draft)
-
-    return create
+        draft = CharacterDraft()
+        tools = [
+            *RulesSearchTool(retriever).tools(),
+            *CharacterTools(draft, self._characters).tools(),
+        ]
+        graph = create_deep_agent(
+            model=model,
+            tools=tools,
+            system_prompt=SYSTEM_PROMPT,
+            middleware=[ToolAllowlistMiddleware(tool.name for tool in tools)],
+            checkpointer=self._checkpointer,
+        )
+        return CharacterBuilder(
+            AgentSession(graph, done=lambda: draft.saved), draft
+        )
