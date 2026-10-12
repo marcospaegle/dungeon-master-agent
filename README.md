@@ -22,3 +22,8 @@ cp .env.example .env        # then fill in the keys
 uv run dungeon build        # index the PDFs in storage/books
 uv run dungeon chat         # then just say what you want; /help
 ```
+
+In the chat you don't pick a mode: say what you want, for example
+"help me create a new character", and the Concierge hands you to the
+right Specialist. `/help` lists the few commands (`/exit` leaves a
+Specialist and `/quit` ends the chat).

@@ -35,7 +35,7 @@ Import names are `dungeon_core` and `dungeon_cli`, never `dungeon.*`.
 ## CLI structure
 
 - The Typer root app is in `apps/cli/src/dungeon_cli/__init__.py`.
-- Each command lives in its own module with a one-command `typer.Typer()`, composed by the parent with `add_typer`. A sub-app added without `name=` merges its command into the parent (`dungeon version`); with `name=` it becomes a group (`dungeon chat`, which composes the core objects and runs the `Terminal`).
+- Each command lives in its own module with a one-command `typer.Typer()`, composed by the parent with `add_typer`. A sub-app added without `name=` merges its command into the parent (`dungeon version`); with `name=` it becomes a group (`dungeon chat`, which composes the core objects, including the Concierge and its Specialists, and runs the `Terminal`).
 - A Frontend is a thin layer: it reads and writes, and composes core
   objects (including the checkpointer). It holds no rules.
 
@@ -46,11 +46,12 @@ Import names are `dungeon_core` and `dungeon_cli`, never `dungeon.*`.
   (`ports/` holds the interfaces, `adapters/` the concrete steps):
   - `knowledge/`: indexing and retrieval of the Sources.
   - `characters/`: the Character, its repository and its sheet.
-  - `agents/`: one folder per Agent (`character_builder/`), each with
-    its prompt and its factory.
+  - `agents/`: one folder per Agent (`concierge/`,
+    `character_builder/`), each with its prompt and its factory.
   - `tools/`: Tools shared by all Agents. An Agent gets only the Tools
     it is given (`ToolAllowlistMiddleware`).
-  - `chat/`: the `Chat` and the Commands.
+  - `chat/`: the `Chat`, which routes text to the Active Agent, and
+    the `Specialist` registry entry.
   - `config/`: `Settings`, read lazily so a missing key only affects
     the feature that needs it.
 - Keep ports free of LangChain types other than `Document`.
@@ -58,8 +59,12 @@ Import names are `dungeon_core` and `dungeon_cli`, never `dungeon.*`.
   LangChain stays for embeddings, the vector store and text splitting.
   Never use `langchain-community`; use `pypdf` and the standalone
   `langchain-*` packages (ADR 0001).
-- A Command only starts an Agent; Agents and the Chat own the flow
-  (ADR 0005).
+- The user talks to the Concierge, which hands the conversation to a
+  Specialist with its `hand_off` Tool; the Chat does the switch and a
+  Specialist gives it back with an Outcome (ADR 0006). Commands are
+  only `/help`, `/exit` and `/quit`, and never start an Agent. A new
+  Specialist is a registry entry the Frontend composes; the Concierge's
+  code does not change.
 - Group related functions in a class. Keep a lone function a function.
 
 ## Ruleset

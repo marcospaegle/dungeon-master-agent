@@ -43,8 +43,8 @@ about any Frontend.
 
 **Agent**:
 A worker that does one task very well, with its own instructions and
-tools: the Concierge or a Specialist. An Agent is limited to its task and turns the user's
-messages into replies.
+tools: the Concierge or a Specialist. An Agent is limited to its task
+and turns the user's messages into replies.
 
 **Tool**:
 Something an Agent can call to look up or change something, such as
@@ -70,8 +70,16 @@ a Dungeon Master.
 **Handoff**:
 The Concierge giving the conversation to a Specialist, because of what
 the user said and not because of a Command. The Specialist has the
-conversation until it finishes or the user leaves with `/exit`, and
-then the Concierge has it again.
+conversation until it finishes, gives it back because the user asked
+for something outside its task, or the user leaves with `/exit`. Then
+the Concierge has it again.
+
+**Outcome**:
+One line a Specialist leaves with the Concierge when the conversation
+comes back, such as a Character being saved or the user leaving
+without finishing. The Concierge hears it with the user's next
+message. A Specialist that cannot start or stops is reported the same
+way.
 
 **Active Agent**:
 The Agent that receives the user's text that is not a Command: the
@@ -93,8 +101,9 @@ template; the filled-in copy is the output.
 
 **Character creation**:
 The task in which the user builds a new Character or edits an
-existing one with the Character Builder, reached by a Handoff. Ends with the user
-confirming the Character, which produces its Character sheet.
+existing one with the Character Builder, reached by a Handoff. Ends
+with the user confirming the Character, which produces its Character
+sheet.
 
 **Character Builder**:
 The Agent that guides the user through Character creation and does
