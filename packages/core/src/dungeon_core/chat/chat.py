@@ -20,6 +20,13 @@ class Reply(NamedTuple):
     active: bool = False
 
 
+class _Handed(NamedTuple):
+    """The Specialist the conversation was handed to."""
+
+    name: str
+    agent: Agent
+
+
 class Chat:
     """One conversation, whatever the Frontend that shows it.
 
@@ -35,8 +42,7 @@ class Chat:
     ) -> None:
         self._concierge = concierge
         self._specialists = {item.name: item for item in specialists}
-        self._handed_to: Agent | None = None
-        self._handed_name = ""
+        self._handed: _Handed | None = None
         self._ended = False
         self._builtins = {
             "/help": ("List the Commands", self._help),
@@ -52,7 +58,7 @@ class Chat:
     def send(self, text: str) -> Reply:
         text = text.strip()
         if not text:
-            return Reply("", active=self._handed_to is not None)
+            return Reply("", active=self._handed is not None)
         if not text.startswith("/"):
             return self._turn(text)
 
@@ -63,16 +69,16 @@ class Chat:
 
     @property
     def _active_agent(self) -> Agent:
-        return self._handed_to or self._concierge
+        return self._handed.agent if self._handed else self._concierge
 
     def _turn(self, text: str) -> Reply:
         try:
             reply = self._active_agent.send(text)
-            if reply.handoff is not None and self._handed_to is None:
+            if reply.handoff is not None and self._handed is None:
                 return self._hand_off(reply.handoff, text)
         except AgentUnavailableError as error:
-            if self._handed_to is not None:
-                self._concierge.note(f"{self._handed_name} stopped: {error}")
+            if self._handed is not None:
+                self._note_failure(self._handed.name, "stopped", error)
             self._leave()
             return Reply(str(error))
         return self._answer(reply, text)
@@ -85,20 +91,23 @@ class Chat:
                 self._concierge.note(reply.outcome)
             if reply.reroute and replay is not None:
                 return self._turn(replay)
-        return Reply(reply.text, active=self._handed_to is not None)
+        return Reply(reply.text, active=self._handed is not None)
 
     def _hand_off(self, handoff: Handoff, text: str) -> Reply:
         specialist = self._specialists.get(handoff.specialist)
         if specialist is None:
             return Reply(f"Unknown Specialist: {handoff.specialist}")
         try:
-            self._handed_to = specialist.start()
+            agent = specialist.start()
         except AgentUnavailableError as error:
-            self._concierge.note(f"{specialist.name} could not start: {error}")
+            self._note_failure(specialist.name, "could not start", error)
             return Reply(str(error))
-        self._handed_name = specialist.name
-        reply = self._handed_to.send(f"{text}\n\n{handoff.brief}")
+        self._handed = _Handed(specialist.name, agent)
+        reply = agent.send(f"{text}\n\n{handoff.brief}")
         return self._answer(reply)
+
+    def _note_failure(self, name: str, what: str, error: Exception) -> None:
+        self._concierge.note(f"{name} {what}: {error}")
 
     def _help(self) -> Reply:
         lines = [
@@ -107,15 +116,15 @@ class Chat:
         return Reply("\n".join(["Commands:", "", *lines]))
 
     def _exit(self) -> Reply:
-        if self._handed_to is None:
+        if self._handed is None:
             return Reply("Nothing to leave.")
-        specialist = self._handed_to
+        specialist = self._handed.agent
         self._leave()
         self._concierge.note("The user left without finishing.")
         return Reply(specialist.leave())
 
     def _leave(self) -> None:
-        self._handed_to = None
+        self._handed = None
 
     def _quit(self) -> Reply:
         self._ended = True

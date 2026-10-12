@@ -167,7 +167,8 @@ def test_without_a_key_the_first_message_reports_it(monkeypatch):
 
     monkeypatch.setattr(chat_module, "ConciergeFactory", ConciergeFactory)
     monkeypatch.setattr(chat_module, "load_dotenv", lambda: None)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    for name in ("ANTHROPIC_API_KEY", "DUNGEON_PROVIDER", "DUNGEON_MODEL"):
+        monkeypatch.delenv(name, raising=False)
 
     result = chat("hello", "/help", "/quit")
 

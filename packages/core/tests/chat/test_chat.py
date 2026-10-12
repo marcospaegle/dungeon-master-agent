@@ -285,3 +285,44 @@ def test_an_unavailable_concierge_is_not_noted_to_itself():
     chat_with(concierge).send("hi")
 
     assert concierge.notes == []
+
+
+def test_a_specialist_failing_on_its_first_reply_is_told_to_the_concierge():
+    concierge = ScriptedAgent(hand_off("builder"), AgentReply("Hello."))
+    builder = ScriptedAgent(AgentUnavailableError("Too long."))
+    chat = chat_with(concierge, builder)
+
+    assert chat.send("make a character") == ("Too long.", False)
+    assert concierge.notes == ["builder stopped: Too long."]
+    assert chat.send("hi") == ("Hello.", False)
+
+
+def test_a_specialist_that_cannot_start_after_a_reroute_is_told_too():
+    def cannot_start():
+        raise AgentUnavailableError("No key.")
+
+    concierge = ScriptedAgent(
+        hand_off("builder"), hand_off("storyteller", "an adventure")
+    )
+    builder = ScriptedAgent(
+        AgentReply("Which class?"),
+        AgentReply(
+            "Not mine.", finished=True, outcome="Wants more.", reroute=True
+        ),
+    )
+    chat = Chat(
+        concierge,
+        [
+            Specialist("builder", "Create a Character", lambda: builder),
+            Specialist("storyteller", "Plan an adventure", cannot_start),
+        ],
+    )
+    chat.send("make a character")
+
+    reply = chat.send("let's create an adventure")
+
+    assert reply == ("No key.", False)
+    assert concierge.notes == [
+        "Wants more.",
+        "storyteller could not start: No key.",
+    ]
