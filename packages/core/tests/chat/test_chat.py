@@ -163,3 +163,18 @@ def test_quit_ends_the_chat(line):
     chat.send(line)
 
     assert chat.ended
+
+
+def test_only_the_concierge_can_hand_the_conversation_over():
+    concierge = ScriptedAgent(hand_off("builder"))
+    builder = ScriptedAgent(
+        AgentReply("Which class?"),
+        hand_off("builder"),
+        AgentReply("A fighter, then."),
+    )
+    chat = chat_with(concierge, builder)
+    chat.send("make a character")
+
+    assert chat.send("hmm") == ("", True)
+    assert chat.send("a fighter") == ("A fighter, then.", True)
+    assert concierge.heard == ["make a character"]

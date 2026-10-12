@@ -33,8 +33,8 @@ class Chat:
         self, concierge: Agent, specialists: Sequence[Specialist] = ()
     ) -> None:
         self._concierge = concierge
-        self._specialists = {s.name: s for s in specialists}
-        self._specialist: Agent | None = None
+        self._specialists = {item.name: item for item in specialists}
+        self._handed_to: Agent | None = None
         self._ended = False
         self._builtins = {
             "/help": ("List the Commands", self._help),
@@ -50,7 +50,7 @@ class Chat:
     def send(self, text: str) -> Reply:
         text = text.strip()
         if not text:
-            return Reply("", active=self._specialist is not None)
+            return Reply("", active=self._handed_to is not None)
         if not text.startswith("/"):
             return self._turn(text)
 
@@ -60,30 +60,30 @@ class Chat:
         return Reply(f"Unknown Command: {name}\n\n{HINT}")
 
     @property
-    def _agent(self) -> Agent:
-        return self._specialist or self._concierge
+    def _active_agent(self) -> Agent:
+        return self._handed_to or self._concierge
 
     def _turn(self, text: str) -> Reply:
         try:
-            reply = self._agent.send(text)
-            if reply.handoff is not None:
+            reply = self._active_agent.send(text)
+            if reply.handoff is not None and self._handed_to is None:
                 return self._hand_off(reply.handoff, text)
         except AgentUnavailableError as error:
-            self._specialist = None
+            self._leave()
             return Reply(str(error))
         return self._answer(reply)
 
     def _answer(self, reply: AgentReply) -> Reply:
         if reply.finished:
-            self._specialist = None
-        return Reply(reply.text, active=self._specialist is not None)
+            self._leave()
+        return Reply(reply.text, active=self._handed_to is not None)
 
     def _hand_off(self, handoff: Handoff, text: str) -> Reply:
         specialist = self._specialists.get(handoff.specialist)
         if specialist is None:
             return Reply(f"Unknown Specialist: {handoff.specialist}")
-        self._specialist = specialist.start()
-        reply = self._specialist.send(f"{text}\n\n{handoff.brief}")
+        self._handed_to = specialist.start()
+        reply = self._handed_to.send(f"{text}\n\n{handoff.brief}")
         return self._answer(reply)
 
     def _help(self) -> Reply:
@@ -93,11 +93,14 @@ class Chat:
         return Reply("\n".join(["Commands:", "", *lines]))
 
     def _exit(self) -> Reply:
-        if self._specialist is None:
+        if self._handed_to is None:
             return Reply("Nothing to leave.")
-        specialist = self._specialist
-        self._specialist = None
+        specialist = self._handed_to
+        self._leave()
         return Reply(specialist.leave())
+
+    def _leave(self) -> None:
+        self._handed_to = None
 
     def _quit(self) -> Reply:
         self._ended = True
