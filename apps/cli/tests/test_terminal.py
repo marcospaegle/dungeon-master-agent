@@ -116,3 +116,21 @@ def test_the_terminal_stops_when_input_runs_out():
 
 def test_the_terminal_writes_nothing_for_an_empty_reply():
     assert drive("", "/quit") == []
+
+
+def test_the_terminal_holds_busy_while_the_chat_works():
+    from contextlib import contextmanager
+
+    events: list[str] = []
+
+    @contextmanager
+    def busy():
+        events.append("start")
+        yield
+        events.append("stop")
+
+    inputs = iter(["/echo", "/quit"])
+    chat = Chat([AgentCommand("/echo", "Repeat", "echo on", EchoAgent)])
+    Terminal(chat, lambda: next(inputs), events.append, busy).run()
+
+    assert events == ["start", "stop", "echo on", "start", "stop"]
