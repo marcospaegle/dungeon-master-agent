@@ -10,6 +10,9 @@ runner = CliRunner()
 
 
 class FakeConcierge:
+    def note(self, text):
+        pass
+
     def send(self, text):
         return AgentReply(f"concierge: {text}")
 

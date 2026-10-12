@@ -31,8 +31,8 @@ class Concierge:
         # Drop a request left behind by a turn that failed.
         self._handoff.take()
         notes = [f"(Note: {note})" for note in self._notes]
-        self._notes.clear()
         reply = self._session.send("\n".join([*notes, text]))
+        self._notes.clear()
         return reply._replace(handoff=self._handoff.take())
 
     def leave(self) -> str:

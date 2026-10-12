@@ -131,3 +131,16 @@ def test_the_prompt_says_notes_come_from_the_program():
     factory(model).create().send("hi")
 
     assert "(Note:" in model.seen_messages[0].content
+
+
+def test_a_note_survives_a_failed_turn():
+    model = ScriptedChatModel(replies=[])
+    concierge = factory(model).create()
+    concierge.note("Saved Mira.")
+    with pytest.raises(IndexError):
+        concierge.send("thanks")
+    model.replies.append(say("Nice."))
+
+    concierge.send("thanks again")
+
+    assert "Saved Mira." in model.seen_messages[-1].content
