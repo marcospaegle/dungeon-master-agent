@@ -5,7 +5,8 @@ from dungeon_core.chat.specialist import Specialist
 
 def system_prompt(specialists: Iterable[Specialist]) -> str:
     listed = "\n".join(
-        f"- {item.name}: {item.description}" for item in specialists
+        f"- {specialist.name}: {specialist.description}"
+        for specialist in specialists
     )
     return f"""\
 You are the Concierge of a D&D 5.5e (2024) helper. You greet the user, \

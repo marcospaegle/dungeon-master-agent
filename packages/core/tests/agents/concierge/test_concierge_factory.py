@@ -95,3 +95,16 @@ def test_nothing_is_read_until_the_first_message():
 
     with pytest.raises(AgentUnavailableError, match="Set the key."):
         concierge.send("hi")
+
+
+def test_a_handoff_from_a_failed_turn_does_not_leak_into_the_next():
+    # The scripted model runs out after the call, so the turn fails.
+    model = ScriptedChatModel(
+        replies=[call("hand_off", specialist="character-builder", brief="x")]
+    )
+    concierge = factory(model).create()
+    with pytest.raises(IndexError):
+        concierge.send("make a character")
+    model.replies.append(say("Hello."))
+
+    assert concierge.send("hi").handoff is None

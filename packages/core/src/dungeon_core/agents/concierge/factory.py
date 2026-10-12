@@ -30,7 +30,9 @@ class ConciergeFactory:
         self._checkpointer = checkpointer
 
     def create(self) -> Concierge:
-        handoff = HandoffTool(item.name for item in self._specialists)
+        handoff = HandoffTool(
+            specialist.name for specialist in self._specialists
+        )
         return Concierge(lambda: self._session(handoff), handoff)
 
     def _session(self, handoff: HandoffTool) -> AgentSession:

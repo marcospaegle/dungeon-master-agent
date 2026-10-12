@@ -23,6 +23,8 @@ class Concierge:
     def send(self, text: str) -> AgentReply:
         if self._session is None:
             self._session = self._build()
+        # Drop a request left behind by a turn that failed.
+        self._handoff.take()
         reply = self._session.send(text)
         return reply._replace(handoff=self._handoff.take())
 
