@@ -15,7 +15,3 @@ tasks/
 
 # Secrets and local data
 .env
-.env.eval
-
-# Eval results
-evals/results/

@@ -85,22 +85,3 @@ confirming the Character, which produces its Character sheet.
 **Character Builder**:
 The Agent that guides the user through Character creation and does
 nothing else.
-
-**Eval**:
-A scripted scenario that scores the Character creation agent: the
-runner plays fixed user replies against it and applies checks to the
-saved Character, and a judge model (set apart from the model under
-test) that grades the transcript against a rubric. Run with
-`uv run python -m evals`, never by pytest, because it calls a real
-model.
-
-**Judge**:
-The model that grades an Eval's transcript against the Rubric, set
-apart from the model under test (`EVAL_JUDGE_MODEL`). It sees only the
-transcript text, so it can judge whether a cited Page is plausible but
-not whether it exists.
-
-**Rubric**:
-The Criteria a Judge grades a transcript on: a common set for every
-Eval plus those of the case. Each Criterion's verdict is a check in
-the run's results.

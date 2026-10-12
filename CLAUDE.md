@@ -31,7 +31,7 @@ Python 3.14 managed with uv (no pip/venv).
 
 ## Ruleset
 
-- The project targets D&D 5.5e (the 2024 rules) only, not the 2014 5e rules. Code, prompts, validation and evals must follow 5.5e, and the Sources are the 5.5e books.
+- The project targets D&D 5.5e (the 2024 rules) only, not the 2014 5e rules. Code, prompts and validation must follow 5.5e, and the Sources are the 5.5e books.
 
 ## Style
 
