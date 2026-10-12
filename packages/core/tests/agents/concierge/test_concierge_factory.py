@@ -108,3 +108,26 @@ def test_a_handoff_from_a_failed_turn_does_not_leak_into_the_next():
     model.replies.append(say("Hello."))
 
     assert concierge.send("hi").handoff is None
+
+
+def test_a_note_is_heard_before_the_next_message_and_only_once():
+    model = ScriptedChatModel(replies=[say("Nice."), say("Sure.")])
+    concierge = factory(model).create()
+    concierge.note("Saved Mira.")
+
+    concierge.send("thanks")
+    first = model.seen_messages[-1].content
+    concierge.send("what else?")
+    second = model.seen_messages[-1].content
+
+    assert "Saved Mira." in first
+    assert first.endswith("thanks")
+    assert "Saved Mira." not in second
+
+
+def test_the_prompt_says_notes_come_from_the_program():
+    model = ScriptedChatModel(replies=[say("Hello.")])
+
+    factory(model).create().send("hi")
+
+    assert "(Note:" in model.seen_messages[0].content

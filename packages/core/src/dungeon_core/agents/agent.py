@@ -19,12 +19,17 @@ class AgentReply(NamedTuple):
     """What an Agent says back, as Markdown.
 
     ``finished`` says the Agent's task is done, so the conversation
-    with it ends. ``handoff`` asks the Chat to start a Specialist.
+    with it ends, and ``outcome`` is what the Concierge is told about
+    how it went. ``reroute`` says the user's message was not for this
+    Agent, so the Concierge should take it up again. ``handoff`` asks
+    the Chat to start a Specialist.
     """
 
     text: str
     finished: bool = False
     handoff: Handoff | None = None
+    outcome: str = ""
+    reroute: bool = False
 
 
 class Agent(Protocol):
@@ -36,4 +41,12 @@ class Agent(Protocol):
 
     def leave(self) -> str:
         """Called when the user leaves; return what to tell them."""
+        ...
+
+
+class ConciergeAgent(Agent, Protocol):
+    """The Agent the Chat talks to by default."""
+
+    def note(self, text: str) -> None:
+        """Tell it something that happened outside its conversation."""
         ...

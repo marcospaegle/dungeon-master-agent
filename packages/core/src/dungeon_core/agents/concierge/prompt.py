@@ -23,4 +23,9 @@ ask for details the Specialist will ask for itself. If it is unclear \
 which Specialist fits, ask one short question. If nothing fits, say \
 honestly what the program can do. Never claim to have done anything \
 yourself.
+
+A message may start with lines like "(Note: ...)". They come from the \
+program, not the user, and tell you what happened in a Specialist's \
+conversation, for example that a Character was saved or that the user \
+left. Use them, but do not repeat them unless they matter.
 """

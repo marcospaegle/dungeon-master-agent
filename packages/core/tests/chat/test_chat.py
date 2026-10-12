@@ -16,6 +16,10 @@ class ScriptedAgent:
         self._replies = iter(replies)
         self._farewell = farewell
         self.heard: list[str] = []
+        self.notes: list[str] = []
+
+    def note(self, text: str) -> None:
+        self.notes.append(text)
 
     def send(self, text: str) -> AgentReply:
         self.heard.append(text)
@@ -178,3 +182,76 @@ def test_only_the_concierge_can_hand_the_conversation_over():
     assert chat.send("hmm") == ("", True)
     assert chat.send("a fighter") == ("A fighter, then.", True)
     assert concierge.heard == ["make a character"]
+
+
+def test_the_outcome_of_a_finished_specialist_reaches_the_concierge():
+    concierge = ScriptedAgent(hand_off("builder"))
+    builder = ScriptedAgent(
+        AgentReply("Saved.", finished=True, outcome="Saved Mira.")
+    )
+    chat = chat_with(concierge, builder)
+
+    assert chat.send("make a character") == ("Saved.", False)
+    assert concierge.notes == ["Saved Mira."]
+
+
+def test_a_rerouted_message_goes_back_to_the_concierge_which_hands_off():
+    concierge = ScriptedAgent(
+        hand_off("builder"), hand_off("storyteller", "an adventure")
+    )
+    builder = ScriptedAgent(
+        AgentReply("Which class?"),
+        AgentReply(
+            "Not mine.",
+            finished=True,
+            outcome="The user asked for an adventure.",
+            reroute=True,
+        ),
+    )
+    storyteller = ScriptedAgent(AgentReply("Once upon a time."))
+    chat = Chat(
+        concierge,
+        [
+            Specialist("builder", "Create a Character", lambda: builder),
+            Specialist(
+                "storyteller", "Plan an adventure", lambda: storyteller
+            ),
+        ],
+    )
+    chat.send("make a character")
+
+    reply = chat.send("let's create an adventure")
+
+    assert reply == ("Once upon a time.", True)
+    assert concierge.notes == ["The user asked for an adventure."]
+    assert concierge.heard[-1] == "let's create an adventure"
+    assert "let's create an adventure" in storyteller.heard[0]
+
+
+def test_a_reroute_on_a_specialists_first_reply_is_not_replayed():
+    concierge = ScriptedAgent(hand_off("builder"))
+    builder = ScriptedAgent(
+        AgentReply("Not mine.", finished=True, outcome="Wrong.", reroute=True)
+    )
+    chat = chat_with(concierge, builder)
+
+    assert chat.send("sing") == ("Not mine.", False)
+    assert concierge.heard == ["sing"]
+
+
+def test_leaving_with_exit_tells_the_concierge_it_was_not_finished():
+    concierge = ScriptedAgent(hand_off("builder"))
+    chat = chat_with(concierge, ScriptedAgent(AgentReply("Hi.")))
+    chat.send("make a character")
+
+    chat.send("/exit")
+
+    assert concierge.notes == ["The user left without finishing."]
+
+
+def test_exit_without_a_specialist_notes_nothing():
+    concierge = ScriptedAgent()
+
+    chat_with(concierge).send("/exit")
+
+    assert concierge.notes == []

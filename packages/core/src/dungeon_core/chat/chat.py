@@ -5,6 +5,7 @@ from dungeon_core.agents.agent import (
     Agent,
     AgentReply,
     AgentUnavailableError,
+    ConciergeAgent,
     Handoff,
 )
 from dungeon_core.chat.specialist import Specialist
@@ -30,7 +31,7 @@ class Chat:
     """
 
     def __init__(
-        self, concierge: Agent, specialists: Sequence[Specialist] = ()
+        self, concierge: ConciergeAgent, specialists: Sequence[Specialist] = ()
     ) -> None:
         self._concierge = concierge
         self._specialists = {item.name: item for item in specialists}
@@ -71,11 +72,16 @@ class Chat:
         except AgentUnavailableError as error:
             self._leave()
             return Reply(str(error))
-        return self._answer(reply)
+        return self._answer(reply, text)
 
-    def _answer(self, reply: AgentReply) -> Reply:
+    def _answer(self, reply: AgentReply, replay: str | None = None) -> Reply:
+        """Show a reply; ``replay`` is what a reroute sends back."""
         if reply.finished:
             self._leave()
+            if reply.outcome:
+                self._concierge.note(reply.outcome)
+            if reply.reroute and replay is not None:
+                return self._turn(replay)
         return Reply(reply.text, active=self._handed_to is not None)
 
     def _hand_off(self, handoff: Handoff, text: str) -> Reply:
@@ -97,6 +103,7 @@ class Chat:
             return Reply("Nothing to leave.")
         specialist = self._handed_to
         self._leave()
+        self._concierge.note("The user left without finishing.")
         return Reply(specialist.leave())
 
     def _leave(self) -> None:

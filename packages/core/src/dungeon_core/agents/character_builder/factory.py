@@ -16,6 +16,7 @@ from dungeon_core.config.settings import MissingSettingError
 from dungeon_core.knowledge.factory import KnowledgeFactory
 from dungeon_core.knowledge.ports.retriever import IndexNotBuiltError
 from dungeon_core.tools.character_tools import CharacterTools
+from dungeon_core.tools.return_tool import ReturnTool
 from dungeon_core.tools.rules_search import RulesSearchTool
 
 
@@ -60,9 +61,11 @@ class CharacterBuilderFactory:
         except (MissingSettingError, IndexNotBuiltError) as error:
             raise AgentUnavailableError(str(error)) from error
         draft = CharacterDraft()
+        returning = ReturnTool()
         tools = [
             *RulesSearchTool(retriever).tools(),
             *CharacterTools(draft, self._characters).tools(),
+            *returning.tools(),
         ]
         graph = create_deep_agent(
             model=model,
@@ -72,5 +75,5 @@ class CharacterBuilderFactory:
             checkpointer=self._checkpointer,
         )
         return CharacterBuilder(
-            AgentSession(graph, done=lambda: draft.saved), draft
+            AgentSession(graph, done=lambda: draft.saved), draft, returning
         )

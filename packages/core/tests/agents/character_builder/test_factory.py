@@ -87,6 +87,7 @@ def test_only_the_character_tools_reach_the_model(tmp_path):
         "list_characters",
         "load_character",
         "save_character",
+        "return_to_concierge",
     }
 
 
@@ -173,3 +174,58 @@ def test_a_model_that_cannot_be_built_makes_the_agent_unavailable(tmp_path):
 
     with pytest.raises(AgentUnavailableError, match="no key"):
         factory(tmp_path, None, models=models).create()
+
+
+def test_returning_to_the_concierge_finishes_with_an_outcome(tmp_path):
+    model = ScriptedChatModel(
+        replies=[
+            call(
+                "return_to_concierge", outcome="The user wants an adventure."
+            ),
+            say("Let me pass you back."),
+        ]
+    )
+    builder = factory(tmp_path, model).create()
+
+    reply = builder.send("let's create an adventure")
+
+    assert reply.finished
+    assert reply.reroute
+    assert reply.outcome == "The user wants an adventure."
+
+
+def test_saving_finishes_with_the_outcome_and_no_reroute(tmp_path):
+    model = ScriptedChatModel(
+        replies=[fill(), call("save_character"), say("All saved.")]
+    )
+    builder = factory(tmp_path, model).create()
+    builder.send("make me a fighter")
+
+    done = builder.send("y")
+
+    assert done.outcome == f"Saved {fighter().name}."
+    assert not done.reroute
+
+
+def test_an_unfinished_turn_has_no_outcome(tmp_path):
+    model = ScriptedChatModel(replies=[say("Which class?")])
+
+    reply = factory(tmp_path, model).create().send("hello")
+
+    assert reply.outcome == ""
+    assert not reply.reroute
+
+
+def test_a_return_from_a_failed_turn_does_not_leak(tmp_path):
+    model = ScriptedChatModel(
+        replies=[call("return_to_concierge", outcome="Out of scope.")]
+    )
+    builder = factory(tmp_path, model).create()
+    with pytest.raises(IndexError):
+        builder.send("let's create an adventure")
+    model.replies.append(say("Which class?"))
+
+    reply = builder.send("a fighter")
+
+    assert not reply.finished
+    assert not reply.reroute

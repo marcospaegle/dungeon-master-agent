@@ -19,13 +19,20 @@ class Concierge:
         self._build = build
         self._handoff = handoff
         self._session: AgentSession | None = None
+        self._notes: list[str] = []
+
+    def note(self, text: str) -> None:
+        """Keep something to tell the Agent with the next message."""
+        self._notes.append(text)
 
     def send(self, text: str) -> AgentReply:
         if self._session is None:
             self._session = self._build()
         # Drop a request left behind by a turn that failed.
         self._handoff.take()
-        reply = self._session.send(text)
+        notes = [f"(Note: {note})" for note in self._notes]
+        self._notes.clear()
+        reply = self._session.send("\n".join([*notes, text]))
         return reply._replace(handoff=self._handoff.take())
 
     def leave(self) -> str:
