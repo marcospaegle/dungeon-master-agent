@@ -20,5 +20,5 @@ Decisions are in `docs/adr/` and the vocabulary in `GLOSSARY.md`.
 uv sync
 cp .env.example .env        # then fill in the keys
 uv run dungeon build        # index the PDFs in storage/books
-uv run dungeon chat         # then /help, /char
+uv run dungeon chat         # then just say what you want; /help
 ```

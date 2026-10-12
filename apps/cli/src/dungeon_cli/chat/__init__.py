@@ -8,10 +8,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.rule import Rule
 
-from dungeon_core.agents.agent import AgentReply
 from dungeon_core.agents.character_builder.factory import (
     CharacterBuilderFactory,
 )
+from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.agents.model_factory import ModelFactory
 from dungeon_core.characters.adapters.json_repository import (
     JsonCharacterRepository,
@@ -33,16 +33,6 @@ LABEL = "Dungeon Master"
 PROMPT = typer.style("You ›", fg=typer.colors.CYAN, bold=True)
 
 console = Console()
-
-
-class PlaceholderConcierge:
-    """Stands in for the Concierge until it is built."""
-
-    def send(self, text: str) -> AgentReply:
-        return AgentReply("The Concierge is not built yet.")
-
-    def leave(self) -> str:
-        return ""
 
 
 def _write(text: str) -> None:
@@ -75,12 +65,16 @@ def chat():
         PypdfSheetWriter(STORAGE / "assets" / "character_sheet.pdf"),
         STORAGE / "characters",
     )
+    models = ModelFactory(settings)
+    checkpointer = InMemorySaver()
     builder = CharacterBuilderFactory(
-        ModelFactory(settings),
+        models,
         KnowledgeFactory(settings),
         STORAGE / "chroma",
         characters,
-        InMemorySaver(),
+        checkpointer,
     )
-    conversation = Chat(PlaceholderConcierge(), [builder.specialist()])
+    specialists = [builder.specialist()]
+    concierge = ConciergeFactory(models, specialists, checkpointer)
+    conversation = Chat(concierge.create(), specialists)
     Terminal(conversation, _read, _write, _busy).run()

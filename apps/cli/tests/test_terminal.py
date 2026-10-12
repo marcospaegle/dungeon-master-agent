@@ -1,3 +1,4 @@
+import pytest
 from typer.testing import CliRunner
 
 from dungeon_cli import app
@@ -6,6 +7,29 @@ from dungeon_core.agents.agent import AgentReply
 from dungeon_core.chat.chat import Chat
 
 runner = CliRunner()
+
+
+class FakeConcierge:
+    def send(self, text):
+        return AgentReply(f"concierge: {text}")
+
+    def leave(self):
+        return ""
+
+
+class FakeConciergeFactory:
+    def __init__(self, *args):
+        pass
+
+    def create(self):
+        return FakeConcierge()
+
+
+@pytest.fixture(autouse=True)
+def fake_concierge(monkeypatch):
+    from dungeon_cli import chat as chat_module
+
+    monkeypatch.setattr(chat_module, "ConciergeFactory", FakeConciergeFactory)
 
 
 def chat(*lines: str):
@@ -27,7 +51,13 @@ def test_help_lists_the_commands():
 def test_text_goes_to_the_concierge():
     result = chat("hello there", "/quit")
 
-    assert "The Concierge is not built yet." in result.output
+    assert "concierge: hello there" in result.output
+
+
+def test_char_is_no_longer_a_command():
+    result = chat("/char", "/quit")
+
+    assert "Unknown Command: /char" in result.output
 
 
 def test_an_unknown_command_gets_a_clear_message():
@@ -46,7 +76,7 @@ def test_the_chat_ends_when_input_runs_out():
 def test_blank_lines_are_ignored():
     result = chat("", "/quit")
 
-    assert "Concierge" not in result.output
+    assert "concierge" not in result.output
 
 
 def test_a_command_with_trailing_text_still_runs():
@@ -59,11 +89,15 @@ def test_a_command_with_trailing_text_still_runs():
 def test_agent_replies_render_as_markdown(monkeypatch):
     from dungeon_cli import chat as chat_module
 
-    class Concierge:
+    class Concierge(FakeConcierge):
         def send(self, text):
             return AgentReply("**Classes** and more")
 
-    monkeypatch.setattr(chat_module, "PlaceholderConcierge", Concierge)
+    class Factory(FakeConciergeFactory):
+        def create(self):
+            return Concierge()
+
+    monkeypatch.setattr(chat_module, "ConciergeFactory", Factory)
     result = chat("hi", "/quit")
 
     assert "Classes and more" in result.output
