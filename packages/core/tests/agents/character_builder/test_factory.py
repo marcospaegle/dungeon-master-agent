@@ -67,11 +67,12 @@ def fill():
     return call("set_fields", fields=CharacterSerializer.to_dict(fighter()))
 
 
-def test_the_command_starts_a_builder(tmp_path):
-    command = factory(tmp_path, ScriptedChatModel(replies=[])).command()
+def test_the_specialist_starts_a_builder(tmp_path):
+    model = ScriptedChatModel(replies=[])
+    specialist = factory(tmp_path, model).specialist()
 
-    assert command.name == "/char"
-    assert command.start() is not None
+    assert specialist.name == "character-builder"
+    assert specialist.start() is not None
 
 
 def test_only_the_character_tools_reach_the_model(tmp_path):

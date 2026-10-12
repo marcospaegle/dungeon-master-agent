@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.rule import Rule
 
+from dungeon_core.agents.agent import AgentReply
 from dungeon_core.agents.character_builder.factory import (
     CharacterBuilderFactory,
 )
@@ -32,6 +33,16 @@ LABEL = "Dungeon Master"
 PROMPT = typer.style("You ›", fg=typer.colors.CYAN, bold=True)
 
 console = Console()
+
+
+class PlaceholderConcierge:
+    """Stands in for the Concierge until it is built."""
+
+    def send(self, text: str) -> AgentReply:
+        return AgentReply("The Concierge is not built yet.")
+
+    def leave(self) -> str:
+        return ""
 
 
 def _write(text: str) -> None:
@@ -71,4 +82,5 @@ def chat():
         characters,
         InMemorySaver(),
     )
-    Terminal(Chat([builder.command()]), _read, _write, _busy).run()
+    conversation = Chat(PlaceholderConcierge(), [builder.specialist()])
+    Terminal(conversation, _read, _write, _busy).run()

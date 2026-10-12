@@ -11,7 +11,7 @@ from dungeon_core.agents.model_factory import ModelFactory
 from dungeon_core.agents.session import AgentSession
 from dungeon_core.characters.draft import CharacterDraft
 from dungeon_core.characters.service import CharacterService
-from dungeon_core.chat.command import AgentCommand
+from dungeon_core.chat.specialist import Specialist
 from dungeon_core.config.settings import MissingSettingError
 from dungeon_core.knowledge.factory import KnowledgeFactory
 from dungeon_core.knowledge.ports.retriever import IndexNotBuiltError
@@ -25,7 +25,7 @@ class CharacterBuilderFactory:
     The checkpointer is the Frontend's choice, since where a
     conversation is kept depends on where the Frontend runs. Nothing
     is read until a Character creation starts, so a missing key only
-    matters to the user of /char.
+    matters to the user of Character creation.
     """
 
     def __init__(
@@ -42,14 +42,12 @@ class CharacterBuilderFactory:
         self._characters = characters
         self._checkpointer = checkpointer
 
-    def command(self) -> AgentCommand:
-        """The /char Command that starts a Character Builder."""
-        return AgentCommand(
-            name="/char",
-            description="Create a Character",
-            intro=(
-                "Character creation: tell me about the Character you "
-                "want, or ask to edit a saved one. Type /exit to leave."
+    def specialist(self) -> Specialist:
+        """The Specialist the Concierge hands Character creation to."""
+        return Specialist(
+            name="character-builder",
+            description=(
+                "Create a new Character or edit a saved one, step by step"
             ),
             start=self.create,
         )
