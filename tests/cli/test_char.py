@@ -265,3 +265,22 @@ def test_renaming_an_edit_onto_another_character_asks_to_overwrite(tmp_path):
     output = run(tmp_path, agent, "/char", "2", "rename", "n")
 
     assert "Aelar already exists. Overwrite? [y/N]" in output
+
+
+def test_replies_go_to_write_reply_and_commands_to_write(tmp_path):
+    inputs = iter(["/char", "hi", "/quit"])
+    written: list[str] = []
+    replies: list[str] = []
+
+    Chat(
+        read=lambda: next(inputs),
+        write=written.append,
+        agent_factory=lambda draft: ScriptedAgent(
+            AgentReply("**Pick a class**")
+        ),
+        store=CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
+        write_reply=replies.append,
+    ).run()
+
+    assert replies == ["**Pick a class**"]
+    assert "**Pick a class**" not in written

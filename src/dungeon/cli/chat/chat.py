@@ -16,6 +16,9 @@ class Chat:
     /char needs an agent factory, which gets the saved Character to
     edit (or None for a new one), and a Character store; without them
     it says Character creation is unavailable.
+
+    The agent's replies go to ``write_reply`` (Markdown), which
+    defaults to ``write``.
     """
 
     def __init__(
@@ -24,9 +27,11 @@ class Chat:
         write: Callable[[str], None],
         agent_factory: Callable[[Character | None], Agent] | None = None,
         store: CharacterStore | None = None,
+        write_reply: Callable[[str], None] | None = None,
     ) -> None:
         self._read = read
         self._write = write
+        self._write_reply = write_reply or write
         self._agent_factory = agent_factory
         self._store = store
         self._agent: Agent | None = None
@@ -128,7 +133,7 @@ class Chat:
             self._agent = None
             self._write(str(error))
             return
-        self._write(reply.text)
+        self._write_reply(reply.text)
         if reply.finished is None:
             return
         character = reply.finished

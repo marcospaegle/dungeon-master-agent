@@ -51,3 +51,20 @@ def test_a_command_with_trailing_text_still_runs():
 
     assert "Commands:" in result.output
     assert "Unknown Command" not in result.output
+
+
+def test_agent_replies_render_as_markdown(monkeypatch):
+    from dungeon.cli import chat as chat_module
+    from dungeon.core.ports.agent import AgentReply
+
+    class Agent:
+        def reply(self, text):
+            return AgentReply("**Classes** and more")
+
+    monkeypatch.setattr(
+        chat_module, "create_agent_factory", lambda *a: lambda draft: Agent()
+    )
+    result = chat("/char", "hi", "/quit")
+
+    assert "Classes and more" in result.output
+    assert "**" not in result.output

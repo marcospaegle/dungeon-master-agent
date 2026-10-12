@@ -3,6 +3,8 @@ from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
+from rich.console import Console
+from rich.markdown import Markdown
 
 from dungeon.core.adapters.pypdf_sheet_writer import PypdfSheetWriter
 from dungeon.core.agent_factory import create_agent_factory
@@ -13,6 +15,10 @@ from .chat import Chat
 app = typer.Typer()
 
 STORAGE = Path("storage")
+
+
+def _render(text: str) -> None:
+    Console().print(Markdown(text))
 
 
 def _read() -> str:
@@ -32,6 +38,7 @@ def chat():
     Chat(
         read=_read,
         write=typer.echo,
+        write_reply=_render,
         agent_factory=create_agent_factory(STORAGE / "chroma", os.environ),
         store=CharacterStore(
             STORAGE / "characters",
