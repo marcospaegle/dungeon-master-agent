@@ -31,19 +31,41 @@ when the Sources, the chunking or the embedding model change.
 Otherwise indexing only adds the Chunks not yet indexed, which is how
 an interrupted run is finished.
 
+**Frontend**:
+A way of talking to the program: the terminal chat, a web API or a
+Discord bot. Every Frontend is a thin layer over the same Core and
+holds no rules of its own.
+
+**Core**:
+Everything the Frontends share: the Agents, the Characters, the
+knowledge from the Sources and the Chat routing. It knows nothing
+about any Frontend.
+
+**Agent**:
+A worker that does one task very well, with its own instructions and
+tools: today the Character Builder, later a Dungeon Master that runs a
+D&D session. An Agent is limited to its task and turns the user's
+messages into replies.
+
+**Tool**:
+Something an Agent can call to look up or change something, such as
+searching the rules or saving a Character. Tools are shared: any
+Agent can be given any Tool, and an Agent has only the Tools it is
+given.
+
 **Chat**:
-The running conversation between the user and the program, started by
-`dungeon chat`. Lives only as long as the program runs. Not a D&D
-game session.
+A running conversation between one user and the program in a
+Frontend. It routes the user's text to the Active Command's Agent.
+Lives only as long as the program runs. Not a D&D game session.
 
 **Command**:
-A chat input starting with `/` that selects what the chat does, such
-as `/char`. It does not depend on the frontend that runs it: it takes
-messages and answers them, and never reads input itself, so it works
-the same in the terminal, a Discord bot or a web chat.
+A chat input starting with `/` that only starts something, such as
+`/char` starting the Character Builder. It does no work itself: the
+work belongs to the Agent it starts. It does not depend on the
+Frontend that runs it.
 
 **Active Command**:
-The Command that text which is not a Command is addressed to, from
+The Command whose Agent receives text that is not a Command, from
 when it starts until it finishes or the user leaves it with `/exit`.
 
 **Character**:
@@ -57,9 +79,12 @@ template; the filled-in copy is the output.
 
 **Character creation**:
 The Command (`/char`) in which the user builds a new Character or
-edits an existing one with the help of an agent, which is limited to
-that task. Ends with the user confirming the Character, which produces
-its Character sheet.
+edits an existing one with the Character Builder. Ends with the user
+confirming the Character, which produces its Character sheet.
+
+**Character Builder**:
+The Agent that guides the user through Character creation and does
+nothing else.
 
 **Eval**:
 A scripted scenario that scores the Character creation agent: the

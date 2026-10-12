@@ -1,5 +1,7 @@
 # The agent sits behind our own port, not LangChain's chat model
 
+Superseded by [0004](0004-deep-agents-runs-the-agent-loop.md).
+
 The chat talks to the character agent through an `Agent` port that
 takes the user's text and returns a reply. The LangChain chat model,
 its Anthropic integration and the tool-calling loop live only in the
