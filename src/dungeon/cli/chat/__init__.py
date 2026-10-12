@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.markdown import Markdown
 
+from dungeon.core.adapters.char_command import CharCommand
 from dungeon.core.adapters.pypdf_sheet_writer import PypdfSheetWriter
 from dungeon.core.agent_factory import create_agent_factory
 from dungeon.core.character_store import CharacterStore
@@ -17,7 +18,7 @@ app = typer.Typer()
 STORAGE = Path("storage")
 
 
-def _render(text: str) -> None:
+def _write(text: str) -> None:
     Console().print(Markdown(text))
 
 
@@ -37,11 +38,16 @@ def chat():
     load_dotenv()
     Chat(
         read=_read,
-        write=typer.echo,
-        write_reply=_render,
-        agent_factory=create_agent_factory(STORAGE / "chroma", os.environ),
-        store=CharacterStore(
-            STORAGE / "characters",
-            PypdfSheetWriter(STORAGE / "assets" / "character_sheet.pdf"),
-        ),
+        write=_write,
+        commands=[
+            CharCommand(
+                create_agent_factory(STORAGE / "chroma", os.environ),
+                CharacterStore(
+                    STORAGE / "characters",
+                    PypdfSheetWriter(
+                        STORAGE / "assets" / "character_sheet.pdf"
+                    ),
+                ),
+            )
+        ],
     ).run()

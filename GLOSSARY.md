@@ -38,8 +38,13 @@ game session.
 
 **Command**:
 A chat input starting with `/` that selects what the chat does, such
-as `/char`. Text that is not a Command is addressed to the active
-Command, if any.
+as `/char`. It does not depend on the frontend that runs it: it takes
+messages and answers them, and never reads input itself, so it works
+the same in the terminal, a Discord bot or a web chat.
+
+**Active Command**:
+The Command that text which is not a Command is addressed to, from
+when it starts until it finishes or the user leaves it with `/exit`.
 
 **Character**:
 A player character: the choices that define it (race, class,

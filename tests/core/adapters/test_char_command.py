@@ -4,14 +4,15 @@ from pathlib import Path
 from characters import fighter
 from pypdf import PdfReader
 
-from dungeon.cli.chat.chat import Chat
+from dungeon.core.adapters.char_command import CharCommand
 from dungeon.core.adapters.pypdf_sheet_writer import PypdfSheetWriter
 from dungeon.core.character import Character
 from dungeon.core.character_store import CharacterStore
 from dungeon.core.ports.agent import AgentReply, AgentUnavailableError
+from dungeon.core.ports.command import Reply
 
 TEMPLATE = (
-    Path(__file__).parents[2] / "storage" / "assets" / "character_sheet.pdf"
+    Path(__file__).parents[3] / "storage" / "assets" / "character_sheet.pdf"
 )
 
 
@@ -25,28 +26,38 @@ class ScriptedAgent:
         return next(self._replies)
 
 
+def converse(command: CharCommand, *lines: str) -> list[Reply]:
+    """Start the Command and feed it lines while it stays active.
+
+    "/exit" leaves it, as the Chat would.
+    """
+    replies = [command.start()]
+    for line in lines:
+        if not replies[-1].active:
+            break
+        replies.append(
+            command.leave() if line == "/exit" else command.handle(line)
+        )
+    return replies
+
+
 def run(
     tmp_path: Path,
     agent: ScriptedAgent,
     *lines: str,
     drafts: list[Character | None] | None = None,
 ) -> str:
-    """Drive a Chat; `drafts` collects what each /char started from."""
-    inputs = iter([*lines, "/quit"])
-    output: list[str] = []
+    """Drive /char; `drafts` collects what each start began from."""
 
     def agent_factory(draft: Character | None) -> ScriptedAgent:
         if drafts is not None:
             drafts.append(draft)
         return agent
 
-    Chat(
-        read=lambda: next(inputs),
-        write=output.append,
-        agent_factory=agent_factory,
-        store=CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
-    ).run()
-    return "\n".join(output)
+    command = CharCommand(
+        agent_factory, CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE))
+    )
+    return "\n".join(r.text for r in converse(command, *lines))
 
 
 def finishing_agent() -> ScriptedAgent:
@@ -57,32 +68,26 @@ def finishing_agent() -> ScriptedAgent:
 
 
 def test_char_routes_text_to_the_agent(tmp_path):
-    output = run(tmp_path, finishing_agent(), "/char", "hi", "/exit")
+    output = run(tmp_path, finishing_agent(), "hi", "/exit")
 
     assert "What is your name?" in output
 
 
-def test_text_after_exit_gets_the_hint_again(tmp_path):
-    output = run(tmp_path, finishing_agent(), "/char", "/exit", "hello")
-
-    assert "Type /help to list the Commands." in output
-
-
 def test_exit_on_an_unfinished_character_warns_and_saves_nothing(tmp_path):
-    output = run(tmp_path, finishing_agent(), "/char", "hi", "/exit")
+    output = run(tmp_path, finishing_agent(), "hi", "/exit")
 
     assert "Unfinished Character discarded." in output
     assert not list(tmp_path.iterdir())
 
 
 def test_exit_before_saying_anything_discards_silently(tmp_path):
-    output = run(tmp_path, finishing_agent(), "/char", "/exit")
+    output = run(tmp_path, finishing_agent(), "/exit")
 
     assert "discarded" not in output
 
 
 def test_declining_the_confirmation_writes_nothing(tmp_path):
-    output = run(tmp_path, finishing_agent(), "/char", "hi", "done", "n")
+    output = run(tmp_path, finishing_agent(), "hi", "done", "n")
 
     assert "Not saved." in output
     assert not list(tmp_path.iterdir())
@@ -91,7 +96,7 @@ def test_declining_the_confirmation_writes_nothing(tmp_path):
 def test_confirming_writes_the_json_and_the_pdf_and_prints_the_path(
     tmp_path,
 ):
-    output = run(tmp_path, finishing_agent(), "/char", "hi", "done", "y")
+    output = run(tmp_path, finishing_agent(), "hi", "done", "y")
 
     pdf = tmp_path / "brannoch.pdf"
     assert str(pdf) in output
@@ -102,21 +107,13 @@ def test_confirming_writes_the_json_and_the_pdf_and_prints_the_path(
 
 
 def test_the_pdf_is_rendered_from_the_json_on_disk(tmp_path):
-    run(tmp_path, finishing_agent(), "/char", "hi", "done", "y")
+    run(tmp_path, finishing_agent(), "hi", "done", "y")
 
     reader = PdfReader(tmp_path / "brannoch.pdf")
     values = {
         field.get("/V") for field in (reader.get_fields() or {}).values()
     }
     assert "Brannoch" in values
-
-
-def test_char_without_an_agent_says_it_is_unavailable():
-    output: list[str] = []
-    inputs = iter(["/char", "/quit"])
-    Chat(read=lambda: next(inputs), write=output.append).run()
-
-    assert "not available" in "\n".join(output)
 
 
 def save_brannoch(folder: Path, **overrides) -> None:
@@ -129,7 +126,7 @@ def test_char_lists_the_saved_characters_with_a_start_new_option(tmp_path):
     save_brannoch(tmp_path)
     save_brannoch(tmp_path, name="Aelar")
 
-    output = run(tmp_path, finishing_agent(), "/char", "")
+    output = run(tmp_path, finishing_agent(), "")
 
     assert "1. Aelar" in output
     assert "2. Brannoch" in output
@@ -139,7 +136,7 @@ def test_char_lists_the_saved_characters_with_a_start_new_option(tmp_path):
 def test_char_without_saved_characters_does_not_ask_to_pick(tmp_path):
     drafts: list[Character | None] = []
 
-    output = run(tmp_path, finishing_agent(), "/char", drafts=drafts)
+    output = run(tmp_path, finishing_agent(), drafts=drafts)
 
     assert "1." not in output
     assert drafts == [None]
@@ -149,7 +146,7 @@ def test_starting_new_gives_the_agent_no_draft(tmp_path):
     save_brannoch(tmp_path)
     drafts: list[Character | None] = []
 
-    run(tmp_path, finishing_agent(), "/char", "", drafts=drafts)
+    run(tmp_path, finishing_agent(), "", drafts=drafts)
 
     assert drafts == [None]
 
@@ -158,7 +155,7 @@ def test_a_picked_character_is_loaded_into_the_agents_draft(tmp_path):
     save_brannoch(tmp_path)
     drafts: list[Character | None] = []
 
-    run(tmp_path, finishing_agent(), "/char", "1", drafts=drafts)
+    run(tmp_path, finishing_agent(), "1", drafts=drafts)
 
     assert drafts == [fighter()]
 
@@ -167,7 +164,7 @@ def test_a_pick_that_is_not_listed_starts_nothing(tmp_path):
     save_brannoch(tmp_path)
     drafts: list[Character | None] = []
 
-    output = run(tmp_path, finishing_agent(), "/char", "7", drafts=drafts)
+    output = run(tmp_path, finishing_agent(), "7", drafts=drafts)
 
     assert "Not a choice" in output
     assert drafts == []
@@ -176,7 +173,7 @@ def test_a_pick_that_is_not_listed_starts_nothing(tmp_path):
 def test_saving_over_an_existing_name_asks_before_overwriting(tmp_path):
     save_brannoch(tmp_path)
 
-    output = run(tmp_path, finishing_agent(), "/char", "", "hi", "done", "y")
+    output = run(tmp_path, finishing_agent(), "", "hi", "done", "y")
 
     assert "Brannoch already exists. Overwrite? [y/N]" in output
 
@@ -185,7 +182,7 @@ def test_declining_the_overwrite_leaves_both_files_unchanged(tmp_path):
     save_brannoch(tmp_path, personality="Gruff")
     before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
 
-    output = run(tmp_path, finishing_agent(), "/char", "", "hi", "done", "n")
+    output = run(tmp_path, finishing_agent(), "", "hi", "done", "n")
 
     assert "Not saved." in output
     assert {
@@ -197,7 +194,7 @@ def test_confirming_an_edit_updates_the_json_and_the_pdf(tmp_path):
     save_brannoch(tmp_path, personality="Gruff")
     pdf_before = (tmp_path / "brannoch.pdf").read_bytes()
 
-    run(tmp_path, finishing_agent(), "/char", "1", "hi", "done", "y")
+    run(tmp_path, finishing_agent(), "1", "hi", "done", "y")
 
     saved = json.loads((tmp_path / "brannoch.json").read_text())
     assert saved["personality"] == ""
@@ -210,27 +207,43 @@ class UnavailableAgent:
 
 
 def test_an_agent_that_cannot_run_ends_creation_with_its_message(tmp_path):
-    output = run(tmp_path, UnavailableAgent(), "/char", "hi", "hello")
+    command = CharCommand(
+        lambda draft: UnavailableAgent(),
+        CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
+    )
 
-    assert "Run `dungeon build` first." in output
-    assert "Type /help to list the Commands." in output
+    replies = converse(command, "hi")
+
+    assert replies[-1] == Reply("Run `dungeon build` first.")
 
 
 def test_a_factory_that_cannot_build_the_agent_says_why(tmp_path):
-    inputs = iter(["/char", "/quit"])
-    output: list[str] = []
-
     def agent_factory(draft):
         raise AgentUnavailableError("ANTHROPIC_API_KEY is not set.")
 
-    Chat(
-        read=lambda: next(inputs),
-        write=output.append,
-        agent_factory=agent_factory,
-        store=CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
-    ).run()
+    command = CharCommand(
+        agent_factory, CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE))
+    )
 
-    assert "ANTHROPIC_API_KEY is not set." in "\n".join(output)
+    assert command.start() == Reply("ANTHROPIC_API_KEY is not set.")
+
+
+def test_leaving_at_the_confirmation_saves_nothing(tmp_path):
+    output = run(tmp_path, finishing_agent(), "hi", "done", "/exit")
+
+    assert "Not saved." in output
+    assert not list(tmp_path.iterdir())
+
+
+def test_the_command_stays_active_until_it_is_done(tmp_path):
+    command = CharCommand(
+        lambda draft: finishing_agent(),
+        CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
+    )
+
+    replies = converse(command, "hi", "done", "y")
+
+    assert [r.active for r in replies] == [True, True, True, False]
 
 
 def test_a_stray_json_file_does_not_break_the_list(tmp_path):
@@ -238,7 +251,7 @@ def test_a_stray_json_file_does_not_break_the_list(tmp_path):
     (tmp_path / "notes.json").write_text("not json")
     (tmp_path / "other.json").write_text('{"a": 1}')
 
-    output = run(tmp_path, finishing_agent(), "/char", "")
+    output = run(tmp_path, finishing_agent(), "")
 
     assert "1. Brannoch" in output
     assert "2." not in output
@@ -249,7 +262,7 @@ def test_saving_an_edit_under_the_same_name_does_not_ask_to_overwrite(
 ):
     save_brannoch(tmp_path, personality="Gruff")
 
-    output = run(tmp_path, finishing_agent(), "/char", "1", "hi", "done", "y")
+    output = run(tmp_path, finishing_agent(), "1", "hi", "done", "y")
 
     assert "Save Brannoch? [y/N]" in output
     assert "already exists" not in output
@@ -262,25 +275,6 @@ def test_renaming_an_edit_onto_another_character_asks_to_overwrite(tmp_path):
         AgentReply("Renamed.", finished=fighter(name="Aelar"))
     )
 
-    output = run(tmp_path, agent, "/char", "2", "rename", "n")
+    output = run(tmp_path, agent, "2", "rename", "n")
 
     assert "Aelar already exists. Overwrite? [y/N]" in output
-
-
-def test_replies_go_to_write_reply_and_commands_to_write(tmp_path):
-    inputs = iter(["/char", "hi", "/quit"])
-    written: list[str] = []
-    replies: list[str] = []
-
-    Chat(
-        read=lambda: next(inputs),
-        write=written.append,
-        agent_factory=lambda draft: ScriptedAgent(
-            AgentReply("**Pick a class**")
-        ),
-        store=CharacterStore(tmp_path, PypdfSheetWriter(TEMPLATE)),
-        write_reply=replies.append,
-    ).run()
-
-    assert replies == ["**Pick a class**"]
-    assert "**Pick a class**" not in written

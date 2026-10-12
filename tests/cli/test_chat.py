@@ -1,6 +1,10 @@
+import shutil
+
 from typer.testing import CliRunner
 
 from dungeon.cli import app
+from dungeon.cli.chat.chat import Chat
+from dungeon.core.ports.command import Reply
 
 runner = CliRunner()
 
@@ -53,7 +57,7 @@ def test_a_command_with_trailing_text_still_runs():
     assert "Unknown Command" not in result.output
 
 
-def test_agent_replies_render_as_markdown(monkeypatch):
+def test_agent_replies_render_as_markdown(monkeypatch, tmp_path):
     from dungeon.cli import chat as chat_module
     from dungeon.core.ports.agent import AgentReply
 
@@ -61,6 +65,12 @@ def test_agent_replies_render_as_markdown(monkeypatch):
         def reply(self, text):
             return AgentReply("**Classes** and more")
 
+    (tmp_path / "assets").mkdir()
+    shutil.copy(
+        chat_module.STORAGE / "assets" / "character_sheet.pdf",
+        tmp_path / "assets",
+    )
+    monkeypatch.setattr(chat_module, "STORAGE", tmp_path)
     monkeypatch.setattr(
         chat_module, "create_agent_factory", lambda *a: lambda draft: Agent()
     )
@@ -68,3 +78,75 @@ def test_agent_replies_render_as_markdown(monkeypatch):
 
     assert "Classes and more" in result.output
     assert "**" not in result.output
+
+
+class EchoCommand:
+    """Stays active and echoes what it is told."""
+
+    name = "/echo"
+    description = "Repeat things"
+
+    def __init__(self) -> None:
+        self.left = False
+
+    def start(self) -> Reply:
+        return Reply("echo on", active=True)
+
+    def handle(self, text: str) -> Reply:
+        return Reply(f"echo: {text}", active=True)
+
+    def leave(self) -> Reply:
+        self.left = True
+        return Reply("echo off")
+
+
+def drive(*lines: str, commands=None) -> tuple[str, EchoCommand]:
+    echo = EchoCommand()
+    inputs = iter([*lines, "/quit"])
+    output: list[str] = []
+    Chat(
+        read=lambda: next(inputs),
+        write=output.append,
+        commands=[echo] if commands is None else commands,
+    ).run()
+    return "\n".join(output), echo
+
+
+def test_help_lists_registered_commands_with_their_descriptions():
+    output, _ = drive("/help")
+
+    assert "`/echo` Repeat things" in output
+
+
+def test_text_goes_to_the_active_command():
+    output, _ = drive("/echo", "hello")
+
+    assert "echo: hello" in output
+
+
+def test_blank_lines_reach_the_active_command():
+    output, _ = drive("/echo", "")
+
+    assert "echo: \n" in output + "\n"
+
+
+def test_exit_leaves_the_active_command_and_stops_routing():
+    output, echo = drive("/echo", "/exit", "hello")
+
+    assert echo.left
+    assert "echo off" in output
+    assert "echo: hello" not in output
+    assert "Type /help to list the Commands." in output
+
+
+def test_exit_outside_a_command_says_so():
+    output, _ = drive("/exit")
+
+    assert "Not in a Command." in output
+
+
+def test_a_command_cannot_be_started_while_one_is_active():
+    output, _ = drive("/echo", "/echo")
+
+    assert output.count("echo on") == 1
+    assert "Already in /echo. /exit leaves." in output
