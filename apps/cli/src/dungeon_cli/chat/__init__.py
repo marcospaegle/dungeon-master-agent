@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from langgraph.checkpoint.memory import InMemorySaver
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.rule import Rule
 
 from dungeon_core.agents.character_builder.factory import (
     CharacterBuilderFactory,
@@ -27,16 +28,26 @@ from .terminal import Terminal
 app = typer.Typer()
 
 STORAGE = Path("storage")
+LABEL = "Dungeon Master"
+PROMPT = typer.style("You ›", fg=typer.colors.CYAN, bold=True)
+
+console = Console()
 
 
 def _write(text: str) -> None:
-    Console().print(Markdown(text))
+    console.print(Rule(LABEL, style="dim", align="left"))
+    console.print(Markdown(text))
+    console.print()
+
+
+def _busy():
+    return console.status("Thinking…")
 
 
 def _read() -> str:
     try:
         return typer.prompt(
-            ">", prompt_suffix=" ", default="", show_default=False
+            PROMPT, prompt_suffix=" ", default="", show_default=False
         )
     except typer.Abort:
         raise EOFError from None
@@ -60,4 +71,4 @@ def chat():
         characters,
         InMemorySaver(),
     )
-    Terminal(Chat([builder.command()]), _read, _write).run()
+    Terminal(Chat([builder.command()]), _read, _write, _busy).run()
