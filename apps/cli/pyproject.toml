@@ -1,0 +1,21 @@
+[project]
+name = "dungeon-cli"
+version = "0.1.0"
+description = "The terminal frontend of the Dungeon Master Agent."
+requires-python = ">=3.14"
+dependencies = [
+    "dungeon-core",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+dungeon = "dungeon_cli:app"
+
+[tool.uv.sources]
+dungeon-core = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.24,<0.13.0"]
+build-backend = "uv_build"

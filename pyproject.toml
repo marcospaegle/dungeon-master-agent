@@ -1,46 +1,34 @@
 [project]
 name = "dungeon-master-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Dungeon Master agent for D&D 5.5e."
 readme = "README.md"
 authors = [
     { name = "Marcos Paegle", email = "marcos.paegle@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = [
-    "fonttools>=4.66.1",
-    "google-genai>=2.29.0",
-    "httpx>=0.28.1",
-    "langchain-anthropic>=1.7.5",
-    "langchain-chroma>=1.1.0",
-    "langchain-core>=1.6.9",
-    "langchain-google-genai>=4.4.0",
-    "langchain-text-splitters>=1.1.3",
-    "pypdf>=6.20.0",
-    "python-dotenv>=1.2.4",
-    "rich>=15.0.0",
-    "typer>=0.27.3",
-]
+dependencies = ["dungeon-cli"]
 
-[project.scripts]
-dungeon = "dungeon.cli:app"
+[tool.uv]
+package = false
 
-[tool.uv.build-backend]
-module-name = "dungeon"
+[tool.uv.workspace]
+members = ["packages/*", "apps/*"]
 
-[build-system]
-requires = ["uv_build>=0.12.24,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv.sources]
+dungeon-cli = { workspace = true }
+dungeon-core = { workspace = true }
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "python-dotenv>=1.2.4",
     "ruff>=0.16.10",
 ]
 
 [tool.pytest]
 minversion = "9.0"
-testpaths = ["tests"]
-pythonpath = ["tests", "."]
+testpaths = ["packages", "apps"]
+pythonpath = ["packages/core/tests"]
 addopts = ["-ra"]
 strict = true

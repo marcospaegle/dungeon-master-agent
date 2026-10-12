@@ -13,3 +13,6 @@ preview = true
 
 [lint.pycodestyle]
 max-doc-length = 72
+
+[lint.isort]
+known-first-party = ["dungeon_core", "dungeon_cli"]
