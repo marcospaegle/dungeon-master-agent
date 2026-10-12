@@ -1,12 +1,39 @@
+import pytest
 from typer.testing import CliRunner
 
 from dungeon_cli import app
 from dungeon_cli.chat.terminal import Terminal
 from dungeon_core.agents.agent import AgentReply
+from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.chat.chat import Chat
-from dungeon_core.chat.command import AgentCommand
 
 runner = CliRunner()
+
+
+class FakeConcierge:
+    def note(self, text):
+        pass
+
+    def send(self, text):
+        return AgentReply(f"concierge: {text}")
+
+    def leave(self):
+        return ""
+
+
+class FakeConciergeFactory:
+    def __init__(self, *args):
+        pass
+
+    def create(self):
+        return FakeConcierge()
+
+
+@pytest.fixture(autouse=True)
+def fake_concierge(monkeypatch):
+    from dungeon_cli import chat as chat_module
+
+    monkeypatch.setattr(chat_module, "ConciergeFactory", FakeConciergeFactory)
 
 
 def chat(*lines: str):
@@ -25,10 +52,16 @@ def test_help_lists_the_commands():
     assert "Commands:" in result.output
 
 
-def test_text_outside_a_command_gets_a_hint():
+def test_text_goes_to_the_concierge():
     result = chat("hello there", "/quit")
 
-    assert "Type /help to list the Commands." in result.output
+    assert "concierge: hello there" in result.output
+
+
+def test_char_is_no_longer_a_command():
+    result = chat("/char", "/quit")
+
+    assert "Unknown Command: /char" in result.output
 
 
 def test_an_unknown_command_gets_a_clear_message():
@@ -47,7 +80,7 @@ def test_the_chat_ends_when_input_runs_out():
 def test_blank_lines_are_ignored():
     result = chat("", "/quit")
 
-    assert "Type /help" not in result.output
+    assert "concierge" not in result.output
 
 
 def test_a_command_with_trailing_text_still_runs():
@@ -60,22 +93,16 @@ def test_a_command_with_trailing_text_still_runs():
 def test_agent_replies_render_as_markdown(monkeypatch):
     from dungeon_cli import chat as chat_module
 
-    class Agent:
+    class Concierge(FakeConcierge):
         def send(self, text):
             return AgentReply("**Classes** and more")
 
-        def leave(self):
-            return ""
+    class Factory(FakeConciergeFactory):
+        def create(self):
+            return Concierge()
 
-    class FakeFactory:
-        def __init__(self, *args):
-            pass
-
-        def command(self):
-            return AgentCommand("/char", "Create", "Welcome.", Agent)
-
-    monkeypatch.setattr(chat_module, "CharacterBuilderFactory", FakeFactory)
-    result = chat("/char", "hi", "/quit")
+    monkeypatch.setattr(chat_module, "ConciergeFactory", Factory)
+    result = chat("hi", "/quit")
 
     assert "Classes and more" in result.output
     assert "**" not in result.output
@@ -99,19 +126,18 @@ def drive(*lines: str) -> list[str]:
         except StopIteration:
             raise EOFError from None
 
-    chat = Chat([AgentCommand("/echo", "Repeat", "echo on", EchoAgent)])
-    Terminal(chat, read, output.append).run()
+    Terminal(Chat(EchoAgent()), read, output.append).run()
     return output
 
 
 def test_the_terminal_writes_each_reply_until_quit():
-    output = drive("/echo", "hello", "/exit", "/quit", "never read")
+    output = drive("hello", "/exit", "/quit", "never read")
 
-    assert output == ["echo on", "echo: hello", "echo off"]
+    assert output == ["echo: hello", "Nothing to leave."]
 
 
 def test_the_terminal_stops_when_input_runs_out():
-    assert drive("/echo") == ["echo on"]
+    assert drive("hello") == ["echo: hello"]
 
 
 def test_the_terminal_writes_nothing_for_an_empty_reply():
@@ -129,8 +155,23 @@ def test_the_terminal_holds_busy_while_the_chat_works():
         yield
         events.append("stop")
 
-    inputs = iter(["/echo", "/quit"])
-    chat = Chat([AgentCommand("/echo", "Repeat", "echo on", EchoAgent)])
+    inputs = iter(["hello", "/quit"])
+    chat = Chat(EchoAgent())
     Terminal(chat, lambda: next(inputs), events.append, busy).run()
 
-    assert events == ["start", "stop", "echo on", "start", "stop"]
+    assert events == ["start", "stop", "echo: hello", "start", "stop"]
+
+
+def test_without_a_key_the_first_message_reports_it(monkeypatch):
+    from dungeon_cli import chat as chat_module
+
+    monkeypatch.setattr(chat_module, "ConciergeFactory", ConciergeFactory)
+    monkeypatch.setattr(chat_module, "load_dotenv", lambda: None)
+    for name in ("ANTHROPIC_API_KEY", "DUNGEON_PROVIDER", "DUNGEON_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+
+    result = chat("hello", "/help", "/quit")
+
+    assert result.exit_code == 0
+    assert "ANTHROPIC_API_KEY" in result.output
+    assert "Commands:" in result.output

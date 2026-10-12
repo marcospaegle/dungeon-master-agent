@@ -11,6 +11,7 @@ from rich.rule import Rule
 from dungeon_core.agents.character_builder.factory import (
     CharacterBuilderFactory,
 )
+from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.agents.model_factory import ModelFactory
 from dungeon_core.characters.adapters.json_repository import (
     JsonCharacterRepository,
@@ -64,11 +65,16 @@ def chat():
         PypdfSheetWriter(STORAGE / "assets" / "character_sheet.pdf"),
         STORAGE / "characters",
     )
+    models = ModelFactory(settings)
+    checkpointer = InMemorySaver()
     builder = CharacterBuilderFactory(
-        ModelFactory(settings),
+        models,
         KnowledgeFactory(settings),
         STORAGE / "chroma",
         characters,
-        InMemorySaver(),
+        checkpointer,
     )
-    Terminal(Chat([builder.command()]), _read, _write, _busy).run()
+    specialists = [builder.specialist()]
+    concierge = ConciergeFactory(models, specialists, checkpointer)
+    conversation = Chat(concierge.create(), specialists)
+    Terminal(conversation, _read, _write, _busy).run()

@@ -8,6 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from dungeon_core.agents.character_builder.factory import (
     CharacterBuilderFactory,
 )
+from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.agents.model_factory import ModelFactory
 from dungeon_core.characters.adapters.json_repository import (
     JsonCharacterRepository,
@@ -16,6 +17,7 @@ from dungeon_core.characters.adapters.pypdf_sheet_writer import (
     PypdfSheetWriter,
 )
 from dungeon_core.characters.service import CharacterService
+from dungeon_core.chat.specialist import Specialist
 from dungeon_core.config.settings import Settings
 from dungeon_core.knowledge.factory import KnowledgeFactory
 
@@ -53,3 +55,19 @@ def test_the_live_agent_answers_a_character_question(tmp_path):
     reply = builder.send("Which armor can a Fighter wear at level 1?")
 
     assert reply.text
+
+
+def test_the_live_concierge_hands_a_character_request_over():
+    specialist = Specialist(
+        "character-builder",
+        "Create a new Character or edit a saved one, step by step",
+        lambda: None,
+    )
+    concierge = ConciergeFactory(
+        ModelFactory(Settings(ENVIRON)), [specialist], InMemorySaver()
+    ).create()
+
+    reply = concierge.send("help me create a new char")
+
+    assert reply.handoff is not None
+    assert reply.handoff.specialist == "character-builder"
