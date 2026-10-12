@@ -255,3 +255,33 @@ def test_exit_without_a_specialist_notes_nothing():
     chat_with(concierge).send("/exit")
 
     assert concierge.notes == []
+
+
+def test_a_specialist_that_cannot_start_is_told_to_the_concierge():
+    concierge = ScriptedAgent(hand_off("builder"))
+    chat = chat_with(concierge, error=AgentUnavailableError("Set the key."))
+
+    chat.send("make a character")
+
+    assert concierge.notes == ["builder could not start: Set the key."]
+
+
+def test_a_specialist_that_stops_mid_turn_is_told_to_the_concierge():
+    concierge = ScriptedAgent(hand_off("builder"))
+    builder = ScriptedAgent(
+        AgentReply("Hi."), AgentUnavailableError("Too long.")
+    )
+    chat = chat_with(concierge, builder)
+    chat.send("make a character")
+
+    chat.send("a fighter")
+
+    assert concierge.notes == ["builder stopped: Too long."]
+
+
+def test_an_unavailable_concierge_is_not_noted_to_itself():
+    concierge = ScriptedAgent(AgentUnavailableError("Set the key."))
+
+    chat_with(concierge).send("hi")
+
+    assert concierge.notes == []

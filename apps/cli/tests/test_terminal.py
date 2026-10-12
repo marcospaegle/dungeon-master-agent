@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 from dungeon_cli import app
 from dungeon_cli.chat.terminal import Terminal
 from dungeon_core.agents.agent import AgentReply
+from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.chat.chat import Chat
 
 runner = CliRunner()
@@ -159,3 +160,17 @@ def test_the_terminal_holds_busy_while_the_chat_works():
     Terminal(chat, lambda: next(inputs), events.append, busy).run()
 
     assert events == ["start", "stop", "echo: hello", "start", "stop"]
+
+
+def test_without_a_key_the_first_message_reports_it(monkeypatch):
+    from dungeon_cli import chat as chat_module
+
+    monkeypatch.setattr(chat_module, "ConciergeFactory", ConciergeFactory)
+    monkeypatch.setattr(chat_module, "load_dotenv", lambda: None)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    result = chat("hello", "/help", "/quit")
+
+    assert result.exit_code == 0
+    assert "ANTHROPIC_API_KEY" in result.output
+    assert "Commands:" in result.output

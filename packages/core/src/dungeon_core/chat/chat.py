@@ -36,6 +36,7 @@ class Chat:
         self._concierge = concierge
         self._specialists = {item.name: item for item in specialists}
         self._handed_to: Agent | None = None
+        self._handed_name = ""
         self._ended = False
         self._builtins = {
             "/help": ("List the Commands", self._help),
@@ -70,6 +71,8 @@ class Chat:
             if reply.handoff is not None and self._handed_to is None:
                 return self._hand_off(reply.handoff, text)
         except AgentUnavailableError as error:
+            if self._handed_to is not None:
+                self._concierge.note(f"{self._handed_name} stopped: {error}")
             self._leave()
             return Reply(str(error))
         return self._answer(reply, text)
@@ -88,7 +91,12 @@ class Chat:
         specialist = self._specialists.get(handoff.specialist)
         if specialist is None:
             return Reply(f"Unknown Specialist: {handoff.specialist}")
-        self._handed_to = specialist.start()
+        try:
+            self._handed_to = specialist.start()
+        except AgentUnavailableError as error:
+            self._concierge.note(f"{specialist.name} could not start: {error}")
+            return Reply(str(error))
+        self._handed_name = specialist.name
         reply = self._handed_to.send(f"{text}\n\n{handoff.brief}")
         return self._answer(reply)
 
