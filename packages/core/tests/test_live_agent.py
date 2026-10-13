@@ -63,8 +63,13 @@ def test_the_live_concierge_hands_a_character_request_over():
         "Create a new Character or edit a saved one, step by step",
         lambda: None,
     )
+    settings = Settings(ENVIRON)
     concierge = ConciergeFactory(
-        ModelFactory(Settings(ENVIRON)), [specialist], InMemorySaver()
+        ModelFactory(settings),
+        [specialist],
+        KnowledgeFactory(settings),
+        INDEX,
+        InMemorySaver(),
     ).create()
 
     reply = concierge.send("help me create a new char")

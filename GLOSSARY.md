@@ -60,7 +60,8 @@ long as the program runs. Not a D&D game session.
 **Concierge**:
 The Agent the user talks to by default. It understands what the user
 wants and hands the conversation to the Specialist that does it. It
-does no specialist work itself.
+does no specialist work itself, but answers general questions about
+D&D from the Sources and declines anything else.
 
 **Specialist**:
 An Agent that does one task and is reached through a Handoff from the

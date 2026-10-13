@@ -23,9 +23,15 @@ prompts and interrupts. Delegation would make the Concierge run every
 such conversation and shrink the Specialists to helpers. We chose a
 neutral Concierge over making the Dungeon Master the orchestrator
 because the Dungeon Master runs a D&D session, and preparation tasks
-should not blur that role. The Concierge has no rules Tools and uses
-the same model as the other Agents; both can change later without
-touching this decision.
+should not blur that role. The Concierge uses the same model as the
+other Agents; that can change later without touching this decision.
 
-It costs one extra model call to route a request, and a rules
-question needs a Specialist until a rules Specialist exists.
+The Concierge also answers general questions about D&D 5.5e, with
+the `search_rules` Tool and no other Tool besides `hand_off`, and
+declines anything that is not about D&D. This replaces the first
+version of this decision, where it had no rules Tools and a rules
+question needed a Specialist. Its search needs the embedding key, so
+the Concierge cannot start without it; a missing index is reported to
+the Agent by the Tool, so handoffs still work.
+
+It costs one extra model call to route a request.

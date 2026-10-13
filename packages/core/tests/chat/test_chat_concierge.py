@@ -62,7 +62,13 @@ def test_a_missing_index_is_shown_and_the_concierge_knows_it_failed(
     )
     specialists = [builder.specialist()]
     chat = Chat(
-        ConciergeFactory(Models(concierge_model), specialists, saver).create(),
+        ConciergeFactory(
+            Models(concierge_model),
+            specialists,
+            Knowledge(),
+            tmp_path / "chroma",
+            saver,
+        ).create(),
         specialists,
     )
 

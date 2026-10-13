@@ -1,10 +1,15 @@
+from pathlib import Path
+
 import pytest
 from fakes import ScriptedChatModel, call, say
+from langchain_core.documents import Document
 from langgraph.checkpoint.memory import InMemorySaver
 
 from dungeon_core.agents.agent import AgentUnavailableError, Handoff
 from dungeon_core.agents.concierge.factory import ConciergeFactory
 from dungeon_core.chat.specialist import Specialist
+from dungeon_core.config.settings import MissingSettingError
+from dungeon_core.knowledge.ports.retriever import IndexNotBuiltError
 
 BUILDER = Specialist(
     "character-builder", "Create or edit a Character", lambda: None
@@ -22,9 +27,35 @@ class FakeModels:
         return self._model
 
 
-def factory(model=None, models=None, specialists=(BUILDER,)):
+class FakeRetriever:
+    def __init__(self, hits=(), error=None) -> None:
+        self._hits = list(hits)
+        self._error = error
+
+    def search(self, query: str, k: int):
+        if self._error:
+            raise self._error
+        return self._hits
+
+
+class FakeKnowledge:
+    def __init__(self, retriever=None, error=None) -> None:
+        self._retriever = retriever or FakeRetriever()
+        self._error = error
+
+    def retriever(self, store):
+        if self._error:
+            raise self._error
+        return self._retriever
+
+
+def factory(model=None, models=None, specialists=(BUILDER,), knowledge=None):
     return ConciergeFactory(
-        models or FakeModels(model), specialists, InMemorySaver()
+        models or FakeModels(model),
+        specialists,
+        knowledge or FakeKnowledge(),
+        Path("chroma"),
+        InMemorySaver(),
     )
 
 
@@ -72,12 +103,62 @@ def test_a_handoff_is_given_once():
     assert concierge.send("thanks").handoff is None
 
 
-def test_only_hand_off_reaches_the_model():
+def test_only_hand_off_and_search_rules_reach_the_model():
     model = ScriptedChatModel(replies=[say("Hello.")])
 
     factory(model).create().send("hi")
 
-    assert model.tool_names == ["hand_off"]
+    assert sorted(model.tool_names) == ["hand_off", "search_rules"]
+
+
+def test_a_rules_question_is_answered_from_the_sources():
+    hit = Document(
+        page_content="A Fighter wears any armor.",
+        metadata={"source": "phb.pdf", "page": 94},
+    )
+    model = ScriptedChatModel(
+        replies=[
+            call("search_rules", query="fighter armor"),
+            say("Any armor."),
+        ]
+    )
+    knowledge = FakeKnowledge(FakeRetriever([hit]))
+
+    reply = factory(model, knowledge=knowledge).create().send("armor?")
+
+    assert reply.text == "Any armor."
+    assert "[phb.pdf, page 94]" in model.seen_messages[-1].content
+
+
+def test_a_missing_index_is_told_to_the_model_not_raised():
+    model = ScriptedChatModel(
+        replies=[call("search_rules", query="x"), say("Build it.")]
+    )
+    knowledge = FakeKnowledge(
+        FakeRetriever(error=IndexNotBuiltError("Build the index first."))
+    )
+
+    factory(model, knowledge=knowledge).create().send("armor?")
+
+    assert "Build the index first." in model.seen_messages[-1].content
+
+
+def test_a_missing_key_makes_the_concierge_unavailable():
+    knowledge = FakeKnowledge(error=MissingSettingError("Set the key."))
+    concierge = factory(knowledge=knowledge).create()
+
+    with pytest.raises(AgentUnavailableError, match="Set the key."):
+        concierge.send("hi")
+
+
+def test_the_prompt_limits_the_concierge_to_dnd_5_5e_questions():
+    model = ScriptedChatModel(replies=[say("Hello.")])
+
+    factory(model).create().send("hi")
+
+    system = model.seen_messages[0].content
+    assert "search_rules" in system
+    assert "Decline" in system
 
 
 def test_the_prompt_lists_the_specialists_with_what_they_do():

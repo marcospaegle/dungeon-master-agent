@@ -67,14 +67,17 @@ def chat():
     )
     models = ModelFactory(settings)
     checkpointer = InMemorySaver()
+    knowledge = KnowledgeFactory(settings)
     builder = CharacterBuilderFactory(
         models,
-        KnowledgeFactory(settings),
+        knowledge,
         STORAGE / "chroma",
         characters,
         checkpointer,
     )
     specialists = [builder.specialist()]
-    concierge = ConciergeFactory(models, specialists, checkpointer)
+    concierge = ConciergeFactory(
+        models, specialists, knowledge, STORAGE / "chroma", checkpointer
+    )
     conversation = Chat(concierge.create(), specialists)
     Terminal(conversation, _read, _write, _busy).run()
